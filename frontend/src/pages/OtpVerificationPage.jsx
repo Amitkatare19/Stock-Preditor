@@ -1,8 +1,8 @@
 "use client"
 
-import React, { useState, useRef, useEffect } from "react"
+import React, { useState, useEffect, useRef } from "react"
 import { useNavigate } from "react-router-dom"
-import { AlertTriangle, Lock, Mail, Shield } from "lucide-react"
+import { ChevronRight, Shield, Smartphone } from "lucide-react"
 
 // Simple utility function for combining class names without dependencies
 const cn = (...classes) => {
@@ -64,20 +64,6 @@ const Input = React.forwardRef(({ className, type, ...props }, ref) => {
 })
 Input.displayName = "Input"
 
-const Label = React.forwardRef(({ className, ...props }, ref) => {
-  return (
-    <label
-      className={cn(
-        "text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70",
-        className,
-      )}
-      ref={ref}
-      {...props}
-    />
-  )
-})
-Label.displayName = "Label"
-
 const Card = React.forwardRef(({ className, ...props }, ref) => (
   <div ref={ref} className={cn("rounded-lg border bg-card text-card-foreground shadow-sm", className)} {...props} />
 ))
@@ -108,193 +94,162 @@ const CardFooter = React.forwardRef(({ className, ...props }, ref) => (
 ))
 CardFooter.displayName = "CardFooter"
 
-const Alert = React.forwardRef(({ className, variant = "default", ...props }, ref) => {
-  const variantClasses =
-    variant === "default"
-      ? "bg-background text-foreground"
-      : "border-destructive/50 text-destructive dark:border-destructive [&>svg]:text-destructive"
-
-  return (
-    <div
-      ref={ref}
-      role="alert"
-      className={cn(
-        "relative w-full rounded-lg border p-4 [&>svg~*]:pl-7 [&>svg+div]:translate-y-[-3px] [&>svg]:absolute [&>svg]:left-4 [&>svg]:top-4 [&>svg]:text-foreground",
-        variantClasses,
-        className,
-      )}
-      {...props}
-    />
-  )
-})
-Alert.displayName = "Alert"
-
-const AlertDescription = React.forwardRef(({ className, ...props }, ref) => (
-  <div ref={ref} className={cn("text-sm [&_p]:leading-relaxed", className)} {...props} />
-))
-AlertDescription.displayName = "AlertDescription"
-
 export default function OtpVerificationPage() {
   const navigate = useNavigate()
   const [otp, setOtp] = useState(["", "", "", "", "", ""])
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [errors, setErrors] = useState({})
+  const [error, setError] = useState(null)
   const [maskedPhone, setMaskedPhone] = useState("")
-  const [timer, setTimer] = useState(30)
-  const [canResend, setCanResend] = useState(false)
-  const [aadhaarNumber, setAadhaarNumber] = useState("")
+  const [resendDisabled, setResendDisabled] = useState(true)
+  const [countdown, setCountdown] = useState(30)
+  const inputRefs = useRef([])
+  const [matchedVoter, setMatchedVoter] = useState(null)
 
-  // Refs for OTP inputs
-  const otpRefs = useRef([])
-
-  // Set up OTP refs
+  // Get masked phone from session storage
   useEffect(() => {
-    otpRefs.current = otpRefs.current.slice(0, 6)
-  }, [])
-
-  // Get data from session storage
-  useEffect(() => {
-    const storedAadhaar = sessionStorage.getItem("aadhaarNumber")
     const storedPhone = sessionStorage.getItem("maskedPhone")
+    const storedVoter = sessionStorage.getItem("matchedVoter")
 
-    if (!storedAadhaar) {
-      // If no Aadhaar in session, redirect back to Aadhaar verification
-      navigate("/verify-aadhaar")
-      return
+    if (storedPhone) {
+      setMaskedPhone(storedPhone)
     }
 
-    setAadhaarNumber(storedAadhaar)
-    setMaskedPhone(storedPhone || "")
-
-    // Focus first OTP input
-    setTimeout(() => {
-      if (otpRefs.current[0]) {
-        otpRefs.current[0].focus()
-      }
-    }, 100)
-  }, [navigate])
-
-  // Timer for OTP resend
-  useEffect(() => {
-    let interval
-    if (timer > 0) {
-      interval = setInterval(() => {
-        setTimer((prevTimer) => prevTimer - 1)
-      }, 1000)
+    if (storedVoter) {
+      setMatchedVoter(JSON.parse(storedVoter))
     } else {
-      setCanResend(true)
+      // If no matched voter, redirect back to Aadhaar verification
+      navigate("/verify-aadhaar")
     }
 
-    return () => clearInterval(interval)
-  }, [timer])
+    // Start countdown for resend button
+    const timer = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer)
+          setResendDisabled(false)
+          return 0
+        }
+        return prev - 1
+      })
+    }, 1000)
+
+    return () => clearInterval(timer)
+  }, [navigate])
 
   // Handle OTP input change
   const handleOtpChange = (index, value) => {
-    // Only allow digits
+    // Only allow numbers
     if (!/^\d*$/.test(value)) return
 
     const newOtp = [...otp]
     newOtp[index] = value
+
     setOtp(newOtp)
+
+    // Clear error when user types
+    if (error) setError(null)
 
     // Auto-focus next input
     if (value && index < 5) {
-      otpRefs.current[index + 1].focus()
-    }
-
-    // Clear error when user types
-    if (errors.otp) {
-      setErrors({ ...errors, otp: null })
+      inputRefs.current[index + 1].focus()
     }
   }
 
-  // Handle OTP input keydown
-  const handleOtpKeyDown = (index, e) => {
-    // Move to previous input on backspace
+  // Handle key down events for backspace
+  const handleKeyDown = (index, e) => {
     if (e.key === "Backspace" && !otp[index] && index > 0) {
-      otpRefs.current[index - 1].focus()
+      inputRefs.current[index - 1].focus()
     }
   }
 
-  // Handle OTP paste
-  const handleOtpPaste = (e) => {
+  // Handle paste event
+  const handlePaste = (e) => {
     e.preventDefault()
     const pastedData = e.clipboardData.getData("text/plain").trim()
 
-    // Check if pasted content is numeric and has correct length
-    if (/^\d+$/.test(pastedData) && pastedData.length <= 6) {
-      const newOtp = [...otp]
+    if (!/^\d+$/.test(pastedData)) return
 
-      for (let i = 0; i < pastedData.length; i++) {
-        if (i < 6) {
-          newOtp[i] = pastedData[i]
-        }
-      }
+    const digits = pastedData.split("").slice(0, 6)
+    const newOtp = [...otp]
 
-      setOtp(newOtp)
+    digits.forEach((digit, index) => {
+      if (index < 6) newOtp[index] = digit
+    })
 
-      // Focus the appropriate input after paste
-      if (pastedData.length < 6) {
-        otpRefs.current[pastedData.length].focus()
-      }
+    setOtp(newOtp)
+
+    // Focus the next empty input or the last input
+    const nextEmptyIndex = newOtp.findIndex((digit) => !digit)
+    if (nextEmptyIndex !== -1) {
+      inputRefs.current[nextEmptyIndex].focus()
+    } else if (digits.length < 6) {
+      inputRefs.current[digits.length].focus()
+    } else {
+      inputRefs.current[5].focus()
     }
-  }
-
-  // Validate OTP
-  const validateOtp = () => {
-    const otpValue = otp.join("")
-
-    if (otpValue.length !== 6) {
-      setErrors({ ...errors, otp: "Please enter the complete 6-digit OTP" })
-      return false
-    }
-
-    // In a real app, you would validate the OTP with an API
-    return true
   }
 
   // Resend OTP
   const resendOtp = () => {
-    if (!canResend) return
+    setResendDisabled(true)
+    setCountdown(30)
 
-    // Reset OTP fields
-    setOtp(["", "", "", "", "", ""])
-
-    // Reset timer
-    setTimer(30)
-    setCanResend(false)
-
-    // Focus first OTP input
-    setTimeout(() => {
-      if (otpRefs.current[0]) {
-        otpRefs.current[0].focus()
-      }
-    }, 100)
+    // Simulate OTP resend
+    const timer = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer)
+          setResendDisabled(false)
+          return 0
+        }
+        return prev - 1
+      })
+    }, 1000)
   }
 
   // Verify OTP
   const verifyOtp = () => {
-    if (validateOtp()) {
-      setIsSubmitting(true)
+    const otpValue = otp.join("")
 
-      // Simulate API call to verify OTP
-      setTimeout(() => {
-        setIsSubmitting(false)
+    if (otpValue.length !== 6) {
+      setError("Please enter a valid 6-digit OTP")
+      return
+    }
+
+    setIsSubmitting(true)
+
+    // Simulate API call to verify OTP
+    setTimeout(() => {
+      setIsSubmitting(false)
+
+      // For demo purposes, any 6-digit OTP is considered valid
+      // In a real app, this would validate against an API
+      if (otpValue === "123456" || otpValue.length === 6) {
+        // Store user data in session storage
+        const userData = {
+          name: matchedVoter?.name || "John Doe",
+          voterID: matchedVoter?.id || matchedVoter?.voterID || "VID12345678",
+          aadhaar: sessionStorage.getItem("aadhaarNumber")?.replace(/\s/g, "") || "123456789012",
+          phone: matchedVoter?.phone || "9876543210",
+          email: matchedVoter?.email || "user@example.com",
+          dob: matchedVoter?.dob || "01/01/1990",
+          gender: matchedVoter?.gender || "Male",
+          address: matchedVoter?.address || "123 Main Street, City, State - 123456",
+        }
+
+        sessionStorage.setItem("userData", JSON.stringify(userData))
 
         // Navigate to success page
         navigate("/success")
-      }, 1500)
-    }
+      } else {
+        setError("Invalid OTP. Please try again.")
+      }
+    }, 1500)
   }
 
   // Go back to Aadhaar verification
   const goBack = () => {
     navigate("/verify-aadhaar")
-  }
-
-  // Format timer display
-  const formatTime = (seconds) => {
-    return `${seconds} second${seconds !== 1 ? "s" : ""}`
   }
 
   return (
@@ -326,70 +281,59 @@ export default function OtpVerificationPage() {
             <CardHeader className="relative space-y-1 border-b border-gray-100 pb-4">
               <div className="mb-2 flex items-center justify-between">
                 <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-r from-blue-500 to-purple-600">
-                  <Lock className="h-5 w-5 text-white" />
+                  <Smartphone className="h-5 w-5 text-white" />
                 </div>
                 <div className="text-right">
                   <span className="text-sm font-medium text-gray-500">Step 2 of 2</span>
                 </div>
               </div>
               <CardTitle className="mt-4 text-xl font-bold">OTP Verification</CardTitle>
-              <CardDescription>Enter the OTP sent to your Aadhaar-linked mobile number</CardDescription>
+              <CardDescription>Enter the 6-digit OTP sent to your phone {maskedPhone}</CardDescription>
             </CardHeader>
 
             <CardContent className="relative px-6 pt-6">
               <div className="space-y-6">
-                <Alert className="border-blue-100 bg-blue-50 text-blue-800">
-                  <AlertDescription className="flex items-center text-sm">
-                    <Mail className="mr-2 h-4 w-4" />
-                    OTP has been sent to your Aadhaar-linked mobile number {maskedPhone}
-                  </AlertDescription>
-                </Alert>
-
                 <div className="space-y-2">
-                  <Label htmlFor="otp" className="flex items-center gap-2 text-sm font-medium text-gray-700">
-                    <Lock className="h-4 w-4 text-blue-600" />
-                    Enter 6-digit OTP
-                  </Label>
                   <div className="flex justify-center space-x-2">
                     {otp.map((digit, index) => (
                       <Input
                         key={index}
-                        ref={(el) => (otpRefs.current[index] = el)}
+                        ref={(el) => (inputRefs.current[index] = el)}
+                        type="text"
+                        inputMode="numeric"
+                        maxLength={1}
                         value={digit}
                         onChange={(e) => handleOtpChange(index, e.target.value)}
-                        onKeyDown={(e) => handleOtpKeyDown(index, e)}
-                        onPaste={index === 0 ? handleOtpPaste : null}
-                        maxLength={1}
-                        className={`h-12 w-12 rounded-lg border-gray-200 bg-white p-0 text-center text-xl shadow-sm transition-all focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 ${errors.otp ? "border-red-300 focus:border-red-500 focus:ring-red-200" : ""}`}
+                        onKeyDown={(e) => handleKeyDown(index, e)}
+                        onPaste={index === 0 ? handlePaste : undefined}
+                        className="h-12 w-12 rounded-lg border-gray-200 bg-white p-0 text-center text-xl font-semibold shadow-sm transition-all focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
                       />
                     ))}
                   </div>
-                  {errors.otp && <p className="text-xs font-medium text-red-500">{errors.otp}</p>}
-                  <div className="flex items-center justify-between">
-                    <p className="text-xs text-gray-500">Enter the OTP sent to your mobile</p>
-                    {timer > 0 ? (
-                      <p className="text-xs text-gray-500">Resend in {formatTime(timer)}</p>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={resendOtp}
-                        className="text-xs font-medium text-blue-600 hover:text-blue-800 hover:underline"
-                        disabled={!canResend}
-                      >
-                        Resend OTP
-                      </button>
-                    )}
-                  </div>
+                  {error && <p className="text-center text-xs font-medium text-red-500">{error}</p>}
+                  <p className="text-center text-xs text-gray-500">
+                    Enter the 6-digit OTP sent to your registered mobile number
+                  </p>
                 </div>
 
-                <div className="rounded-lg border border-yellow-100 bg-yellow-50 p-4">
+                <div className="text-center">
+                  <button
+                    onClick={resendOtp}
+                    disabled={resendDisabled}
+                    className="text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline disabled:text-gray-400 disabled:no-underline"
+                  >
+                    {resendDisabled ? `Resend OTP in ${countdown}s` : "Resend OTP"}
+                  </button>
+                </div>
+
+                <div className="rounded-lg border border-blue-100 bg-blue-50 p-4">
                   <div className="flex items-start space-x-3">
-                    <AlertTriangle className="mt-0.5 h-5 w-5 text-yellow-600" />
+                    <Shield className="mt-0.5 h-5 w-5 text-blue-600" />
                     <div>
-                      <h4 className="text-sm font-medium text-yellow-800">Important</h4>
-                      <p className="mt-1 text-xs text-yellow-700">
-                        After verification, your QR code will be sent to your Aadhaar-linked mobile number. This QR code
-                        is required for voting.
+                      <h4 className="text-sm font-medium text-blue-800">Verification Information</h4>
+                      <p className="mt-1 text-xs text-blue-700">
+                        For demo purposes, any 6-digit OTP will work. In a real application, this would validate against
+                        an API.
                       </p>
                     </div>
                   </div>
@@ -406,7 +350,7 @@ export default function OtpVerificationPage() {
 
                   <Button
                     onClick={verifyOtp}
-                    disabled={isSubmitting || otp.join("").length !== 6}
+                    disabled={isSubmitting || otp.some((digit) => !digit)}
                     className="relative w-2/3 overflow-hidden bg-gradient-to-r from-blue-600 to-purple-600 text-white transition-all duration-300 hover:from-blue-700 hover:to-purple-700 disabled:from-gray-400 disabled:to-gray-400"
                   >
                     {isSubmitting ? (
@@ -430,7 +374,10 @@ export default function OtpVerificationPage() {
                         Verifying...
                       </span>
                     ) : (
-                      "Verify OTP"
+                      <span className="flex items-center justify-center">
+                        Verify OTP
+                        <ChevronRight className="ml-1 h-4 w-4" />
+                      </span>
                     )}
                   </Button>
                 </div>

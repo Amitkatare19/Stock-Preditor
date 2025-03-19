@@ -964,72 +964,82 @@ export default function RegisterUserPage() {
                     <p className="text-sm text-blue-600">Please review all information before submitting</p>
                   </div>
 
-                  <div className="grid gap-6 md:grid-cols-2">
-                    <div>
-                      <h3 className="font-medium text-gray-900 mb-3">Personal Information</h3>
-                      <dl className="space-y-2">
-                        <div className="flex justify-between">
-                          <dt className="text-sm font-medium text-gray-500">Aadhaar Number:</dt>
-                          <dd className="text-sm text-gray-900">{formData.aadhaarNumber}</dd>
+                  <div className="flex justify-center mb-6">
+                    <div className="w-full max-w-md bg-white rounded-lg border border-gray-200 shadow-md overflow-hidden">
+                      <div className="p-6 flex flex-col items-center">
+                        {/* Photo Preview */}
+                        <div className="mb-4">
+                          {photoPreview ? (
+                            <img
+                              src={photoPreview || "/placeholder.svg"}
+                              alt="Voter Photo"
+                              className="h-32 w-32 rounded-full object-cover border-2 border-gray-200"
+                            />
+                          ) : (
+                            <div className="h-32 w-32 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 text-4xl font-medium border-2 border-gray-200">
+                              {formData.name ? formData.name.charAt(0) : "U"}
+                            </div>
+                          )}
                         </div>
-                        <div className="flex justify-between">
-                          <dt className="text-sm font-medium text-gray-500">Name:</dt>
-                          <dd className="text-sm text-gray-900">{formData.name}</dd>
-                        </div>
-                        <div className="flex justify-between">
-                          <dt className="text-sm font-medium text-gray-500">Date of Birth:</dt>
-                          <dd className="text-sm text-gray-900">
-                            {formData.dob} ({calculateAge(formData.dob)} years)
-                          </dd>
-                        </div>
-                        <div className="flex justify-between">
-                          <dt className="text-sm font-medium text-gray-500">Gender:</dt>
-                          <dd className="text-sm text-gray-900">{formData.gender}</dd>
-                        </div>
-                        <div className="flex justify-between">
-                          <dt className="text-sm font-medium text-gray-500">Phone:</dt>
-                          <dd className="text-sm text-gray-900">{formData.phone}</dd>
-                        </div>
-                        <div className="flex justify-between">
-                          <dt className="text-sm font-medium text-gray-500">Email:</dt>
-                          <dd className="text-sm text-gray-900">{formData.email || "Not provided"}</dd>
-                        </div>
-                      </dl>
-                    </div>
 
-                    <div>
-                      <h3 className="font-medium text-gray-900 mb-3">Voting Information</h3>
-                      <dl className="space-y-2">
-                        <div className="flex justify-between">
-                          <dt className="text-sm font-medium text-gray-500">Voter ID:</dt>
-                          <dd className="text-sm text-gray-900">{formData.voterID}</dd>
+                        {/* Voter ID and Name */}
+                        <h3 className="text-xl font-bold text-gray-900">{formData.name}</h3>
+                        <div className="mt-1 px-3 py-1 bg-blue-100 rounded-full text-blue-800 text-sm font-medium">
+                          {formData.voterID}
                         </div>
-                        <div className="flex justify-between">
-                          <dt className="text-sm font-medium text-gray-500">Constituency:</dt>
-                          <dd className="text-sm text-gray-900">{formData.constituency}</dd>
-                        </div>
-                        <div className="flex justify-between">
-                          <dt className="text-sm font-medium text-gray-500">Polling Station:</dt>
-                          <dd className="text-sm text-gray-900">{formData.pollingStation}</dd>
-                        </div>
-                      </dl>
 
-                      <h3 className="font-medium text-gray-900 mt-6 mb-3">Address</h3>
-                      <p className="text-sm text-gray-900">{formData.address}</p>
-                    </div>
+                        {/* Basic Info */}
+                        <div className="w-full mt-6 grid grid-cols-2 gap-4">
+                          <div className="col-span-2">
+                            <h4 className="text-sm font-medium text-gray-500 mb-1">Address</h4>
+                            <p className="text-sm text-gray-900 bg-gray-50 p-2 rounded border border-gray-100">
+                              {formData.address}
+                            </p>
+                          </div>
 
-                    {photoPreview && (
-                      <div className="md:col-span-2 flex justify-center">
-                        <div className="text-center">
-                          <h3 className="font-medium text-gray-900 mb-3">Photo ID</h3>
-                          <img
-                            src={photoPreview || "/placeholder.svg"}
-                            alt="Voter Photo"
-                            className="h-40 object-cover rounded-md border border-gray-200"
-                          />
+                          <div>
+                            <h4 className="text-sm font-medium text-gray-500 mb-1">Date of Birth</h4>
+                            <p className="text-sm text-gray-900">
+                              {formData.dob} ({calculateAge(formData.dob)} years)
+                            </p>
+                          </div>
+
+                          <div>
+                            <h4 className="text-sm font-medium text-gray-500 mb-1">Gender</h4>
+                            <p className="text-sm text-gray-900">{formData.gender}</p>
+                          </div>
+
+                          <div>
+                            <h4 className="text-sm font-medium text-gray-500 mb-1">Phone</h4>
+                            <p className="text-sm text-gray-900">{formData.phone}</p>
+                          </div>
+
+                          <div>
+                            <h4 className="text-sm font-medium text-gray-500 mb-1">Email</h4>
+                            <p className="text-sm text-gray-900">{formData.email || "Not provided"}</p>
+                          </div>
                         </div>
                       </div>
-                    )}
+
+                      {/* Voting Information */}
+                      <div className="bg-gray-50 border-t border-gray-200 p-6">
+                        <h4 className="font-medium text-gray-900 mb-3">Voting Information</h4>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <h5 className="text-sm font-medium text-gray-500 mb-1">Aadhaar Number</h5>
+                            <p className="text-sm text-gray-900">{formData.aadhaarNumber}</p>
+                          </div>
+                          <div>
+                            <h5 className="text-sm font-medium text-gray-500 mb-1">Constituency</h5>
+                            <p className="text-sm text-gray-900">{formData.constituency}</p>
+                          </div>
+                          <div className="col-span-2">
+                            <h5 className="text-sm font-medium text-gray-500 mb-1">Polling Station</h5>
+                            <p className="text-sm text-gray-900">{formData.pollingStation}</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
 
                   <div className="mt-6 flex justify-between">

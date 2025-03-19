@@ -1,8 +1,10 @@
 "use client"
 
+// Update the ProfilePage to display registered voter data
 import React, { useState, useEffect } from "react"
 import { Link } from "react-router-dom"
-import { Download, Edit, Lock, Mail, MapPin, Phone, QrCode, Shield, User } from "lucide-react"
+import { Download, Edit, Mail, MapPin, Phone, Shield, User } from "lucide-react"
+import { useVoters } from "../../context/VoterContext"
 
 // Simple utility function for combining class names without dependencies
 const cn = (...classes) => {
@@ -104,26 +106,28 @@ Badge.displayName = "Badge"
 
 export default function ProfilePage() {
   const [userData, setUserData] = useState(null)
-  const [showQrModal, setShowQrModal] = useState(false)
+  const { voters } = useVoters()
+  const [currentVoter, setCurrentVoter] = useState(null)
 
   const [isElectionDay, setIsElectionDay] = useState(false)
-  const [qrCodeLocked, setQrCodeLocked] = useState(true)
 
-  // Add this function to check if it's election day (for demo purposes)
-  const checkIfElectionDay = () => {
-    // In a real app, this would check against the actual election date
-    // For demo purposes, we'll just toggle the state
-    setIsElectionDay(!isElectionDay)
-    setQrCodeLocked(!qrCodeLocked)
-  }
-
-  // Get user data from session storage
+  // Get user data from session storage and find the corresponding voter
   useEffect(() => {
     const storedUserData = sessionStorage.getItem("userData")
     if (storedUserData) {
-      setUserData(JSON.parse(storedUserData))
+      const parsedUserData = JSON.parse(storedUserData)
+      setUserData(parsedUserData)
+
+      // Find the voter with matching voter ID or Aadhaar
+      const matchingVoter = voters.find(
+        (voter) => voter.voterID === parsedUserData.voterID || voter.aadhaar === parsedUserData.aadhaar,
+      )
+
+      if (matchingVoter) {
+        setCurrentVoter(matchingVoter)
+      }
     }
-  }, [])
+  }, [voters])
 
   if (!userData) {
     return (
@@ -151,26 +155,33 @@ export default function ProfilePage() {
               <CardTitle>Voter Information</CardTitle>
               <CardDescription>Your personal details and voter information</CardDescription>
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              className="flex items-center gap-1"
-              onClick={() => setShowQrModal(true)}
-            >
-              <QrCode className="h-4 w-4" />
-              <span>View QR</span>
-            </Button>
           </CardHeader>
           <CardContent className="pt-4">
             <div className="flex flex-col md:flex-row">
               <div className="mb-6 flex flex-col items-center md:mb-0 md:w-1/3 md:border-r md:pr-6">
-                <div className="mb-4 h-32 w-32 overflow-hidden rounded-full bg-gradient-to-r from-blue-600 to-purple-600 p-1">
-                  <div className="flex h-full w-full items-center justify-center rounded-full bg-white">
-                    <User className="h-16 w-16 text-gray-400" />
+                {currentVoter?.avatar ? (
+                  <div className="mb-4 h-32 w-32 overflow-hidden rounded-full bg-gradient-to-r from-blue-600 to-purple-600 p-1">
+                    <img
+                      src={currentVoter.avatar || "/placeholder.svg"}
+                      alt={currentVoter.name}
+                      className="h-full w-full rounded-full object-cover"
+                      onError={(e) => {
+                        e.target.onerror = null
+                        e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(currentVoter.name)}&background=random&color=fff&size=128`
+                      }}
+                    />
                   </div>
-                </div>
-                <h3 className="text-xl font-bold text-gray-900">{userData.name}</h3>
-                <p className="text-sm text-gray-500">Voter ID: {userData.voterID}</p>
+                ) : (
+                  <div className="mb-4 h-32 w-32 overflow-hidden rounded-full bg-gradient-to-r from-blue-600 to-purple-600 p-1">
+                    <div className="flex h-full w-full items-center justify-center rounded-full bg-white">
+                      <User className="h-16 w-16 text-gray-400" />
+                    </div>
+                  </div>
+                )}
+                <h3 className="text-xl font-bold text-gray-900">{currentVoter?.name || userData.name}</h3>
+                <p className="text-sm text-gray-500">
+                  Voter ID: {currentVoter?.id || currentVoter?.voterID || userData.voterID}
+                </p>
                 <div className="mt-4 flex space-x-2">
                   <Button variant="outline" size="sm" className="flex items-center gap-1">
                     <Download className="h-4 w-4" />
@@ -184,24 +195,25 @@ export default function ProfilePage() {
                   <div>
                     <h4 className="mb-1 text-sm font-medium text-gray-500">Full Name</h4>
                     <div className="flex items-center justify-between">
-                      <p className="text-gray-900">{userData.name}</p>
+                      <p className="text-gray-900">{currentVoter?.name || userData.name}</p>
                       <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
                         <Edit className="h-3.5 w-3.5 text-gray-400" />
                       </Button>
                     </div>
                   </div>
+
                   <div>
                     <h4 className="mb-1 text-sm font-medium text-gray-500">Date of Birth</h4>
-                    <p className="text-gray-900">{userData.dob}</p>
+                    <p className="text-gray-900">{currentVoter?.dob || userData.dob}</p>
                   </div>
                   <div>
                     <h4 className="mb-1 text-sm font-medium text-gray-500">Gender</h4>
-                    <p className="text-gray-900">{userData.gender}</p>
+                    <p className="text-gray-900">{currentVoter?.gender || userData.gender}</p>
                   </div>
                   <div>
                     <h4 className="mb-1 text-sm font-medium text-gray-500">Aadhaar Number</h4>
                     <div className="flex items-center">
-                      <p className="text-gray-900">{userData.aadhaar}</p>
+                      <p className="text-gray-900">{currentVoter?.aadhaar || userData.aadhaar}</p>
                       <Badge variant="success" className="ml-2">
                         Verified
                       </Badge>
@@ -210,7 +222,7 @@ export default function ProfilePage() {
                   <div>
                     <h4 className="mb-1 text-sm font-medium text-gray-500">Phone Number</h4>
                     <div className="flex items-center justify-between">
-                      <p className="text-gray-900">{userData.phone}</p>
+                      <p className="text-gray-900">{currentVoter?.phone || userData.phone}</p>
                       <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
                         <Edit className="h-3.5 w-3.5 text-gray-400" />
                       </Button>
@@ -219,7 +231,7 @@ export default function ProfilePage() {
                   <div>
                     <h4 className="mb-1 text-sm font-medium text-gray-500">Email</h4>
                     <div className="flex items-center justify-between">
-                      <p className="text-gray-900">{userData.email}</p>
+                      <p className="text-gray-900">{currentVoter?.email || userData.email}</p>
                       <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
                         <Edit className="h-3.5 w-3.5 text-gray-400" />
                       </Button>
@@ -228,7 +240,7 @@ export default function ProfilePage() {
                   <div className="md:col-span-2">
                     <h4 className="mb-1 text-sm font-medium text-gray-500">Address</h4>
                     <div className="flex items-center justify-between">
-                      <p className="text-gray-900">{userData.address}</p>
+                      <p className="text-gray-900">{currentVoter?.address || userData.address}</p>
                       <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
                         <Edit className="h-3.5 w-3.5 text-gray-400" />
                       </Button>
@@ -254,7 +266,7 @@ export default function ProfilePage() {
                 </div>
                 <div>
                   <h4 className="text-sm font-medium text-gray-700">Phone Number</h4>
-                  <p className="text-gray-900">{userData.phone}</p>
+                  <p className="text-gray-900">{currentVoter?.phone || userData.phone}</p>
                 </div>
               </div>
 
@@ -264,7 +276,7 @@ export default function ProfilePage() {
                 </div>
                 <div>
                   <h4 className="text-sm font-medium text-gray-700">Email Address</h4>
-                  <p className="text-gray-900">{userData.email}</p>
+                  <p className="text-gray-900">{currentVoter?.email || userData.email}</p>
                 </div>
               </div>
 
@@ -274,7 +286,7 @@ export default function ProfilePage() {
                 </div>
                 <div>
                   <h4 className="text-sm font-medium text-gray-700">Residential Address</h4>
-                  <p className="text-gray-900">{userData.address}</p>
+                  <p className="text-gray-900">{currentVoter?.address || userData.address}</p>
                 </div>
               </div>
 
@@ -321,7 +333,9 @@ export default function ProfilePage() {
                     <p className="text-sm text-green-700">Verified on {new Date().toLocaleDateString()}</p>
                   </div>
                 </div>
-                <Badge variant="success">Verified</Badge>
+                <Badge variant={currentVoter?.status === "Verified" ? "success" : "warning"}>
+                  {currentVoter?.status || "Pending"}
+                </Badge>
               </div>
 
               <div className="flex items-center justify-between rounded-md bg-yellow-50 p-3">
@@ -361,84 +375,6 @@ export default function ProfilePage() {
           </CardContent>
         </Card>
       </div>
-
-      {/* QR Code Modal */}
-      {showQrModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-md rounded-lg bg-white p-6">
-            <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-lg font-bold text-gray-900">Your Voter QR Code</h3>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-8 w-8 rounded-full p-0"
-                onClick={() => setShowQrModal(false)}
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="18"
-                  height="18"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <line x1="18" y1="6" x2="6" y2="18"></line>
-                  <line x1="6" y1="6" x2="18" y2="18"></line>
-                </svg>
-              </Button>
-            </div>
-
-            <div className="mb-4 rounded-lg bg-gradient-to-r from-blue-50 to-purple-50 p-4">
-              <div className="aspect-square w-full overflow-hidden rounded-lg bg-white p-4">
-                <div className="flex h-full w-full flex-col items-center justify-center">
-                  {qrCodeLocked ? (
-                    <div className="flex flex-col items-center justify-center">
-                      <div className="relative mb-4">
-                        <QrCode className="h-48 w-48 text-gray-200" strokeWidth={1} />
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <Lock className="h-16 w-16 text-gray-400" />
-                        </div>
-                      </div>
-                      <div className="text-center">
-                        <p className="font-medium text-gray-900">QR Code Locked</p>
-                        <p className="text-sm text-gray-500">Your QR code will be available on election day</p>
-                      </div>
-                    </div>
-                  ) : (
-                    <>
-                      <QrCode className="h-48 w-48 text-gray-800" strokeWidth={1} />
-                      <div className="mt-4 text-center">
-                        <p className="font-medium text-gray-900">Voter ID: {userData.voterID}</p>
-                        <p className="text-sm text-gray-500">Scan this QR code at the polling station</p>
-                      </div>
-                    </>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            <div className="flex justify-between">
-              <Button variant="outline" onClick={() => setShowQrModal(false)}>
-                Close
-              </Button>
-              {qrCodeLocked ? (
-                // For demo purposes only - in a real app this button wouldn't exist
-                <Button variant="outline" onClick={checkIfElectionDay}>
-                  {isElectionDay ? "Lock QR Code" : "Simulate Election Day"}
-                </Button>
-              ) : (
-                <Button>
-                  <Download className="mr-2 h-4 w-4" />
-                  Download QR
-                </Button>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }

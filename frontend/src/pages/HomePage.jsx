@@ -116,7 +116,7 @@ export default function HomePage() {
             <CardHeader className="relative space-y-1 pb-4">
               <CardTitle className="text-center text-2xl font-bold">Welcome to VoteSecure</CardTitle>
               <CardDescription className="text-center">
-                Register with your Aadhaar to receive your secure voting QR code
+                Register with your Aadhaar to complete your voter registration
               </CardDescription>
             </CardHeader>
 
@@ -140,13 +140,13 @@ export default function HomePage() {
                     <span className="mr-2 flex h-5 w-5 items-center justify-center rounded-full bg-blue-100 text-xs font-bold text-blue-600">
                       3
                     </span>
-                    <span>Receive your unique voting QR code</span>
+                    <span>Complete your voter registration</span>
                   </li>
                   <li className="flex items-start">
                     <span className="mr-2 flex h-5 w-5 items-center justify-center rounded-full bg-blue-100 text-xs font-bold text-blue-600">
                       4
                     </span>
-                    <span>Use your QR code to vote securely on election day</span>
+                    <span>Vote securely on election day with your voter ID</span>
                   </li>
                 </ol>
               </div>

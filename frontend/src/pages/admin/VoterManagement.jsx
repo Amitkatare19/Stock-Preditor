@@ -488,27 +488,27 @@ export default function VoterManagement() {
 
           {/* Card View */}
           {viewMode === "card" && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {paginatedVoters.length > 0 ? (
                 paginatedVoters.map((voter) => (
                   <div
                     key={voter.id}
-                    className="rounded-lg border border-gray-200 bg-white overflow-hidden hover:shadow-md transition-shadow"
+                    className="rounded-lg border border-gray-200 bg-white overflow-hidden hover:shadow-lg transition-all"
                   >
-                    <div className="p-4 flex flex-col items-center">
-                      <div className="relative mb-3">
+                    <div className="p-6 flex flex-col items-center">
+                      <div className="relative mb-4">
                         {voter.avatar ? (
                           <img
                             src={voter.avatar || "/placeholder.svg"}
                             alt={voter.name}
-                            className="h-32 w-32 rounded-full object-cover border-2 border-gray-200"
+                            className="h-36 w-36 rounded-full object-cover border-4 border-gray-100 shadow-md"
                             onError={(e) => {
                               e.target.onerror = null
                               e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(voter.name)}&background=random&color=fff&size=128`
                             }}
                           />
                         ) : (
-                          <div className="h-32 w-32 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 text-4xl font-medium border-2 border-gray-200">
+                          <div className="h-36 w-36 rounded-full bg-gradient-to-br from-blue-100 to-purple-100 flex items-center justify-center text-gray-600 text-5xl font-medium border-4 border-gray-100 shadow-md">
                             {voter.name.charAt(0)}
                           </div>
                         )}
@@ -520,40 +520,47 @@ export default function VoterManagement() {
                                 ? "warning"
                                 : "destructive"
                           }
-                          className="absolute bottom-0 right-0 transform translate-x-1/4"
+                          className="absolute bottom-0 right-0 transform translate-x-1/4 px-3 py-1 text-sm"
                         >
                           {voter.status}
                         </Badge>
                       </div>
-                      <h3 className="font-medium text-lg text-center">{voter.name}</h3>
-                      <p className="text-sm text-gray-500 text-center">{voter.id}</p>
-                      <div className="w-full mt-3 pt-3 border-t border-gray-100">
-                        <div className="grid grid-cols-2 gap-2 text-xs text-gray-500">
+                      <h3 className="font-bold text-xl text-gray-900 text-center">{voter.name}</h3>
+                      <p className="text-sm text-gray-500 text-center mt-1 bg-gray-100 px-3 py-1 rounded-full">
+                        {voter.id}
+                      </p>
+
+                      <div className="w-full mt-4 pt-4 border-t border-gray-100">
+                        <div className="grid grid-cols-2 gap-3 text-sm">
                           <div>
-                            <span className="font-medium">Constituency:</span>
-                            <p className="truncate">{voter.constituency}</p>
+                            <span className="text-xs font-medium text-gray-500 block">Constituency</span>
+                            <p className="truncate font-medium text-gray-800">{voter.constituency}</p>
                           </div>
                           <div>
-                            <span className="font-medium">Registered:</span>
-                            <p>{voter.registrationDate}</p>
+                            <span className="text-xs font-medium text-gray-500 block">Registered</span>
+                            <p className="font-medium text-gray-800">{voter.registrationDate}</p>
+                          </div>
+                          <div className="col-span-2">
+                            <span className="text-xs font-medium text-gray-500 block">Polling Station</span>
+                            <p className="truncate font-medium text-gray-800">{voter.pollingStation}</p>
                           </div>
                         </div>
                       </div>
                     </div>
-                    <div className="bg-gray-50 px-4 py-3 flex justify-between">
+                    <div className="bg-gray-50 px-6 py-4 flex justify-between items-center border-t border-gray-100">
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="text-blue-600 hover:text-blue-800 hover:bg-blue-50"
+                        className="text-blue-600 hover:text-blue-800 hover:bg-blue-50 font-medium"
                         onClick={() => viewVoterDetails(voter)}
                       >
                         View Details
                       </Button>
-                      <div className="flex space-x-1">
+                      <div className="flex space-x-2">
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-8 w-8 p-0 text-green-600 hover:bg-green-50 hover:text-green-700"
+                          className="h-9 w-9 p-0 text-green-600 hover:bg-green-50 hover:text-green-700 rounded-full"
                           onClick={() => handleVerifyVoter(voter.id)}
                           disabled={voter.status === "Verified"}
                         >
@@ -562,7 +569,7 @@ export default function VoterManagement() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-8 w-8 p-0 text-red-500 hover:bg-red-50 hover:text-red-600"
+                          className="h-9 w-9 p-0 text-red-500 hover:bg-red-50 hover:text-red-600 rounded-full"
                           onClick={() => confirmDelete(voter)}
                         >
                           <Trash className="h-4 w-4" />
@@ -572,14 +579,17 @@ export default function VoterManagement() {
                   </div>
                 ))
               ) : (
-                <div className="col-span-full p-8 text-center border rounded-lg bg-gray-50">
+                <div className="col-span-full p-12 text-center border rounded-lg bg-gray-50">
                   <div className="flex flex-col items-center">
-                    <User className="h-16 w-16 text-gray-300 mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-1">No voters registered yet</h3>
-                    <p className="text-gray-500 mb-4">Use the "Add Voter" button to register new voters</p>
-                    <Button asChild>
+                    <User className="h-20 w-20 text-gray-300 mb-4" />
+                    <h3 className="text-xl font-medium text-gray-900 mb-2">No voters registered yet</h3>
+                    <p className="text-gray-500 mb-6 max-w-md mx-auto">
+                      Use the "Add Voter" button to register new voters and they will appear here in card format with
+                      their photos.
+                    </p>
+                    <Button asChild size="lg">
                       <Link to="/admin/register-user">
-                        <Plus className="mr-2 h-4 w-4" />
+                        <Plus className="mr-2 h-5 w-5" />
                         Add Voter
                       </Link>
                     </Button>
@@ -651,95 +661,46 @@ export default function VoterManagement() {
 
       {/* Voter Details Modal */}
       {showVoterDetails && selectedVoterDetails && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-2xl rounded-lg bg-white p-6">
-            <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-lg font-bold text-gray-900">Voter Details</h3>
-              <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => setShowVoterDetails(false)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 overflow-y-auto">
+          <div className="w-full max-w-3xl rounded-lg bg-white shadow-xl">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <h3 className="text-xl font-bold text-gray-900">Voter Details</h3>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 p-0 rounded-full"
+                onClick={() => setShowVoterDetails(false)}
+              >
                 <X className="h-4 w-4" />
               </Button>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="col-span-2 flex justify-center mb-4">
-                {selectedVoterDetails.avatar ? (
-                  <img
-                    src={selectedVoterDetails.avatar || "/placeholder.svg"}
-                    alt={selectedVoterDetails.name}
-                    className="h-32 w-32 rounded-full object-cover border-2 border-gray-200"
-                    onError={(e) => {
-                      e.target.onerror = null
-                      e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(selectedVoterDetails.name)}&background=random&color=fff&size=128`
-                    }}
-                  />
-                ) : (
-                  <div className="h-32 w-32 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 text-4xl font-medium border-2 border-gray-200">
-                    {selectedVoterDetails.name.charAt(0)}
-                  </div>
-                )}
-              </div>
+            <div className="p-6">
+              <div className="flex flex-col md:flex-row gap-6">
+                {/* Left column with photo */}
+                <div className="md:w-1/3 flex flex-col items-center">
+                  {selectedVoterDetails.avatar ? (
+                    <img
+                      src={selectedVoterDetails.avatar || "/placeholder.svg"}
+                      alt={selectedVoterDetails.name}
+                      className="h-48 w-48 rounded-full object-cover border-4 border-gray-100 shadow-lg"
+                      onError={(e) => {
+                        e.target.onerror = null
+                        e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(selectedVoterDetails.name)}&background=random&color=fff&size=128`
+                      }}
+                    />
+                  ) : (
+                    <div className="h-48 w-48 rounded-full bg-gradient-to-br from-blue-100 to-purple-100 flex items-center justify-center text-gray-600 text-6xl font-medium border-4 border-gray-100 shadow-lg">
+                      {selectedVoterDetails.name.charAt(0)}
+                    </div>
+                  )}
 
-              <div>
-                <h4 className="mb-2 font-medium text-gray-900">Personal Information</h4>
-                <div className="space-y-2 rounded-lg border p-3">
-                  <div className="flex justify-between">
-                    <span className="text-sm font-medium text-gray-500">Voter ID:</span>
-                    <span className="text-sm text-gray-900">{selectedVoterDetails.id}</span>
+                  <h2 className="mt-4 text-xl font-bold text-center">{selectedVoterDetails.name}</h2>
+                  <div className="mt-2 px-3 py-1 bg-blue-100 rounded-full text-blue-800 text-sm font-medium">
+                    {selectedVoterDetails.id}
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm font-medium text-gray-500">Name:</span>
-                    <span className="text-sm text-gray-900">{selectedVoterDetails.name}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm font-medium text-gray-500">Aadhaar:</span>
-                    <span className="text-sm text-gray-900">{selectedVoterDetails.aadhaar}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm font-medium text-gray-500">Date of Birth:</span>
-                    <span className="text-sm text-gray-900">{selectedVoterDetails.dob}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm font-medium text-gray-500">Gender:</span>
-                    <span className="text-sm text-gray-900">{selectedVoterDetails.gender}</span>
-                  </div>
-                </div>
-              </div>
 
-              <div>
-                <h4 className="mb-2 font-medium text-gray-900">Contact Information</h4>
-                <div className="space-y-2 rounded-lg border p-3">
-                  <div className="flex justify-between">
-                    <span className="text-sm font-medium text-gray-500">Phone:</span>
-                    <span className="text-sm text-gray-900">{selectedVoterDetails.phone}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm font-medium text-gray-500">Email:</span>
-                    <span className="text-sm text-gray-900">{selectedVoterDetails.email || "Not provided"}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm font-medium text-gray-500">Address:</span>
-                    <span className="text-sm text-right text-gray-900">{selectedVoterDetails.address}</span>
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <h4 className="mb-2 font-medium text-gray-900">Voting Information</h4>
-                <div className="space-y-2 rounded-lg border p-3">
-                  <div className="flex justify-between">
-                    <span className="text-sm font-medium text-gray-500">Constituency:</span>
-                    <span className="text-sm text-gray-900">{selectedVoterDetails.constituency}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm font-medium text-gray-500">Polling Station:</span>
-                    <span className="text-sm text-gray-900">{selectedVoterDetails.pollingStation}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm font-medium text-gray-500">Registration Date:</span>
-                    <span className="text-sm text-gray-900">{selectedVoterDetails.registrationDate}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm font-medium text-gray-500">Status:</span>
+                  <div className="mt-4 w-full">
                     <Badge
                       variant={
                         selectedVoterDetails.status === "Verified"
@@ -748,59 +709,132 @@ export default function VoterManagement() {
                             ? "warning"
                             : "destructive"
                       }
+                      className="w-full flex justify-center py-1 text-sm"
                     >
                       {selectedVoterDetails.status}
                     </Badge>
                   </div>
                 </div>
-              </div>
 
-              <div>
-                <h4 className="mb-2 font-medium text-gray-900">Actions</h4>
-                <div className="space-y-2 rounded-lg border p-3">
-                  <div className="grid grid-cols-2 gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="w-full"
-                      onClick={() => handleVerifyVoter(selectedVoterDetails.id)}
-                      disabled={selectedVoterDetails.status === "Verified"}
-                    >
-                      <Check className="mr-2 h-4 w-4" />
-                      Verify
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="w-full"
-                      onClick={() => handleRejectVoter(selectedVoterDetails.id)}
-                      disabled={selectedVoterDetails.status === "Rejected"}
-                    >
-                      <X className="mr-2 h-4 w-4" />
-                      Reject
-                    </Button>
-                    <Button variant="outline" size="sm" className="w-full">
-                      <Edit className="mr-2 h-4 w-4" />
-                      Edit
-                    </Button>
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      className="w-full"
-                      onClick={() => {
-                        setShowVoterDetails(false)
-                        confirmDelete(selectedVoterDetails)
-                      }}
-                    >
-                      <Trash className="mr-2 h-4 w-4" />
-                      Delete
-                    </Button>
+                {/* Right column with details */}
+                <div className="md:w-2/3">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-4">
+                      <div>
+                        <h4 className="text-sm font-medium text-gray-500 mb-1">Personal Information</h4>
+                        <div className="space-y-2 rounded-lg border p-3 bg-gray-50">
+                          <div>
+                            <span className="text-xs font-medium text-gray-500 block">Date of Birth</span>
+                            <span className="text-sm font-medium text-gray-900">{selectedVoterDetails.dob}</span>
+                          </div>
+                          <div>
+                            <span className="text-xs font-medium text-gray-500 block">Gender</span>
+                            <span className="text-sm font-medium text-gray-900">{selectedVoterDetails.gender}</span>
+                          </div>
+                          <div>
+                            <span className="text-xs font-medium text-gray-500 block">Aadhaar</span>
+                            <span className="text-sm font-medium text-gray-900">{selectedVoterDetails.aadhaar}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div>
+                        <h4 className="text-sm font-medium text-gray-500 mb-1">Contact Information</h4>
+                        <div className="space-y-2 rounded-lg border p-3 bg-gray-50">
+                          <div>
+                            <span className="text-xs font-medium text-gray-500 block">Phone</span>
+                            <span className="text-sm font-medium text-gray-900">{selectedVoterDetails.phone}</span>
+                          </div>
+                          <div>
+                            <span className="text-xs font-medium text-gray-500 block">Email</span>
+                            <span className="text-sm font-medium text-gray-900">
+                              {selectedVoterDetails.email || "Not provided"}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-4">
+                      <div>
+                        <h4 className="text-sm font-medium text-gray-500 mb-1">Voting Information</h4>
+                        <div className="space-y-2 rounded-lg border p-3 bg-gray-50">
+                          <div>
+                            <span className="text-xs font-medium text-gray-500 block">Constituency</span>
+                            <span className="text-sm font-medium text-gray-900">
+                              {selectedVoterDetails.constituency}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-xs font-medium text-gray-500 block">Polling Station</span>
+                            <span className="text-sm font-medium text-gray-900">
+                              {selectedVoterDetails.pollingStation}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-xs font-medium text-gray-500 block">Registration Date</span>
+                            <span className="text-sm font-medium text-gray-900">
+                              {selectedVoterDetails.registrationDate}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div>
+                        <h4 className="text-sm font-medium text-gray-500 mb-1">Address</h4>
+                        <div className="rounded-lg border p-3 bg-gray-50">
+                          <p className="text-sm text-gray-900">{selectedVoterDetails.address}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="md:col-span-2">
+                      <h4 className="text-sm font-medium text-gray-500 mb-1">Actions</h4>
+                      <div className="grid grid-cols-4 gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-full"
+                          onClick={() => handleVerifyVoter(selectedVoterDetails.id)}
+                          disabled={selectedVoterDetails.status === "Verified"}
+                        >
+                          <Check className="mr-2 h-4 w-4" />
+                          Verify
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-full"
+                          onClick={() => handleRejectVoter(selectedVoterDetails.id)}
+                          disabled={selectedVoterDetails.status === "Rejected"}
+                        >
+                          <X className="mr-2 h-4 w-4" />
+                          Reject
+                        </Button>
+                        <Button variant="outline" size="sm" className="w-full">
+                          <Edit className="mr-2 h-4 w-4" />
+                          Edit
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          className="w-full"
+                          onClick={() => {
+                            setShowVoterDetails(false)
+                            confirmDelete(selectedVoterDetails)
+                          }}
+                        >
+                          <Trash className="mr-2 h-4 w-4" />
+                          Delete
+                        </Button>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
 
-            <div className="mt-6 flex justify-end">
+            <div className="flex justify-end p-6 border-t border-gray-200 bg-gray-50">
               <Button onClick={() => setShowVoterDetails(false)}>Close</Button>
             </div>
           </div>

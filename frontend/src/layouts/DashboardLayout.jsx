@@ -11,11 +11,11 @@ import {
   LogOut,
   MapPin,
   Menu,
-  QrCode,
   Settings,
   User,
   X,
 } from "lucide-react"
+import { useVoters } from "../context/VoterContext"
 
 // Simple utility function for combining class names without dependencies
 const cn = (...classes) => {
@@ -91,8 +91,10 @@ export default function DashboardLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [currentLanguage, setCurrentLanguage] = useState("English")
   const [showLanguageSelector, setShowLanguageSelector] = useState(false)
+  const { voters } = useVoters()
+  const [currentVoter, setCurrentVoter] = useState(null)
 
-  // Get user data from session storage
+  // Get user data from session storage and find the corresponding voter
   useEffect(() => {
     const storedUserData = sessionStorage.getItem("userData")
 
@@ -102,8 +104,18 @@ export default function DashboardLayout() {
       return
     }
 
-    setUserData(JSON.parse(storedUserData))
-  }, [navigate])
+    const parsedUserData = JSON.parse(storedUserData)
+    setUserData(parsedUserData)
+
+    // Find the voter with matching voter ID or Aadhaar
+    const matchingVoter = voters.find(
+      (voter) => voter.voterID === parsedUserData.voterID || voter.aadhaar === parsedUserData.aadhaar,
+    )
+
+    if (matchingVoter) {
+      setCurrentVoter(matchingVoter)
+    }
+  }, [navigate, voters])
 
   // Function to handle logout
   const handleLogout = () => {
@@ -222,12 +234,28 @@ export default function DashboardLayout() {
         <div className="flex flex-col py-4">
           <div className="px-4 py-2">
             <div className="flex items-center space-x-3 rounded-lg bg-gradient-to-r from-blue-50 to-purple-50 p-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-r from-blue-600 to-purple-600 text-white">
-                {userData.name.charAt(0)}
-              </div>
+              {currentVoter?.avatar ? (
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-r from-blue-600 to-purple-600 text-white overflow-hidden">
+                  <img
+                    src={currentVoter.avatar || "/placeholder.svg"}
+                    alt={currentVoter.name}
+                    className="h-full w-full object-cover"
+                    onError={(e) => {
+                      e.target.onerror = null
+                      e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(currentVoter.name)}&background=random&color=fff&size=128`
+                    }}
+                  />
+                </div>
+              ) : (
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-r from-blue-600 to-purple-600 text-white">
+                  {(currentVoter?.name || userData.name).charAt(0)}
+                </div>
+              )}
               <div className="flex-1 overflow-hidden">
-                <p className="truncate font-medium text-gray-900">{userData.name}</p>
-                <p className="truncate text-xs text-gray-500">Voter ID: {userData.voterID}</p>
+                <p className="truncate font-medium text-gray-900">{currentVoter?.name || userData.name}</p>
+                <p className="truncate text-xs text-gray-500">
+                  Voter ID: {currentVoter?.id || currentVoter?.voterID || userData.voterID}
+                </p>
               </div>
             </div>
           </div>
@@ -309,20 +337,25 @@ export default function DashboardLayout() {
           </div>
 
           <div className="flex items-center space-x-3">
-            <Button
-              variant="outline"
-              size="sm"
-              className="flex items-center gap-1 border-blue-200 text-blue-600 hover:bg-blue-50"
-            >
-              <QrCode className="h-4 w-4" />
-              <span className="hidden sm:inline">Scan QR Code</span>
-            </Button>
-
             <div className="relative">
               <button className="flex items-center space-x-1 rounded-md p-1 text-gray-700 hover:bg-gray-100">
-                <div className="h-8 w-8 rounded-full bg-gradient-to-r from-blue-600 to-purple-600 flex items-center justify-center text-white font-medium">
-                  {userData.name.charAt(0)}
-                </div>
+                {currentVoter?.avatar ? (
+                  <div className="h-8 w-8 rounded-full overflow-hidden">
+                    <img
+                      src={currentVoter.avatar || "/placeholder.svg"}
+                      alt={currentVoter.name}
+                      className="h-full w-full object-cover"
+                      onError={(e) => {
+                        e.target.onerror = null
+                        e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(currentVoter.name)}&background=random&color=fff&size=128`
+                      }}
+                    />
+                  </div>
+                ) : (
+                  <div className="h-8 w-8 rounded-full bg-gradient-to-r from-blue-600 to-purple-600 flex items-center justify-center text-white font-medium">
+                    {(currentVoter?.name || userData.name).charAt(0)}
+                  </div>
+                )}
                 <ChevronDown className="h-4 w-4" />
               </button>
             </div>

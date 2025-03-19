@@ -1,6 +1,9 @@
-import React from "react"
+"use client"
+
+import React, { useState, useEffect } from "react"
 import { Link } from "react-router-dom"
-import { AlertCircle, Calendar, ChevronRight, Clock, FileText, MapPin, QrCode, Shield, User } from "lucide-react"
+import { AlertCircle, Calendar, ChevronRight, Clock, FileText, MapPin, Shield, User, Settings } from "lucide-react"
+import { useVoters } from "../../context/VoterContext"
 
 // Simple utility function for combining class names without dependencies
 const cn = (...classes) => {
@@ -117,19 +120,63 @@ const Badge = React.forwardRef(({ className, variant, ...props }, ref) => {
 })
 Badge.displayName = "Badge"
 
+// Avatar component
+const Avatar = React.forwardRef(({ className, src, alt, fallback, ...props }, ref) => {
+  const [error, setError] = useState(false)
+
+  return (
+    <div
+      ref={ref}
+      className={cn("relative flex h-10 w-10 shrink-0 overflow-hidden rounded-full", className)}
+      {...props}
+    >
+      {!error && src ? (
+        <img
+          className="aspect-square h-full w-full object-cover"
+          src={src || "/placeholder.svg"}
+          alt={alt}
+          onError={() => setError(true)}
+        />
+      ) : (
+        <div className="flex h-full w-full items-center justify-center rounded-full bg-gray-200 text-gray-600">
+          {fallback || alt?.charAt(0)?.toUpperCase() || "U"}
+        </div>
+      )}
+    </div>
+  )
+})
+Avatar.displayName = "Avatar"
+
 export default function DashboardHome() {
   // Calculate days until next election
   const daysUntilElection = 28 // Mock data
-  const userData = JSON.parse(sessionStorage.getItem("userData") || "{}")
+  const [userData, setUserData] = useState(null)
+  const { voters } = useVoters()
+  const [currentVoter, setCurrentVoter] = useState(null)
+  const [noVoterFound, setNoVoterFound] = useState(false)
+
+  // Get user data from session storage and find the corresponding voter
+  useEffect(() => {
+    const storedUserData = sessionStorage.getItem("userData")
+    if (storedUserData) {
+      const parsedUserData = JSON.parse(storedUserData)
+      setUserData(parsedUserData)
+
+      // Find the voter with matching voter ID or Aadhaar
+      const matchingVoter = voters.find(
+        (voter) => voter.voterID === parsedUserData.voterID || voter.aadhaar === parsedUserData.aadhaar,
+      )
+
+      if (matchingVoter) {
+        setCurrentVoter(matchingVoter)
+      } else {
+        setNoVoterFound(true)
+      }
+    }
+  }, [voters])
 
   // Quick action items
   const quickActions = [
-    {
-      title: "View QR Code",
-      icon: QrCode,
-      path: "/dashboard/profile",
-      color: "bg-blue-100 text-blue-600",
-    },
     {
       title: "Find Polling Station",
       icon: MapPin,
@@ -147,6 +194,12 @@ export default function DashboardHome() {
       icon: AlertCircle,
       path: "/dashboard/help",
       color: "bg-purple-100 text-purple-600",
+    },
+    {
+      title: "Settings",
+      icon: Settings,
+      path: "/dashboard/settings",
+      color: "bg-blue-100 text-blue-600",
     },
   ]
 
@@ -176,7 +229,9 @@ export default function DashboardHome() {
         <div className="absolute -bottom-10 -left-10 h-40 w-40 rounded-full bg-white/10 blur-2xl"></div>
 
         <div className="relative">
-          <h1 className="text-2xl font-bold">Welcome back, {userData.name?.split(" ")[0] || "Voter"}!</h1>
+          <h1 className="text-2xl font-bold">
+            Welcome back, {currentVoter?.name?.split(" ")[0] || userData?.name?.split(" ")[0] || "Voter"}!
+          </h1>
           <p className="mt-2 text-blue-100">
             Your secure voting dashboard provides everything you need for the upcoming elections.
           </p>
@@ -199,6 +254,155 @@ export default function DashboardHome() {
           </div>
         </div>
       </div>
+
+      {/* No Voter Record Found Message */}
+      {noVoterFound && (
+        <Card className="mb-6 border-yellow-200 bg-yellow-50">
+          <CardContent className="p-6">
+            <div className="flex items-start space-x-4">
+              <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-yellow-100">
+                <AlertCircle className="h-6 w-6 text-yellow-600" />
+              </div>
+              <div>
+                <h3 className="text-lg font-medium text-yellow-800">No Voter Record Found</h3>
+                <p className="mt-1 text-yellow-700">
+                  We couldn't find your voter record in our database. This could be because:
+                </p>
+                <ul className="mt-2 list-inside list-disc space-y-1 text-yellow-700">
+                  <li>Your voter registration is still being processed</li>
+                  <li>The Aadhaar number you provided doesn't match any voter records</li>
+                  <li>You may need to register as a voter with your local election office</li>
+                </ul>
+                <div className="mt-4">
+                  <Link
+                    to="/dashboard/help"
+                    className="inline-flex items-center rounded-md bg-yellow-200 px-4 py-2 text-sm font-medium text-yellow-800 hover:bg-yellow-300"
+                  >
+                    Contact Support
+                    <ChevronRight className="ml-1 h-4 w-4" />
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Voter Information Card */}
+      {currentVoter && (
+        <Card className="mb-6 overflow-hidden">
+          <CardHeader className="pb-2 border-b">
+            <CardTitle>Your Voter Information</CardTitle>
+            <CardDescription>Information registered by election officials</CardDescription>
+          </CardHeader>
+          <CardContent className="p-6">
+            <div className="flex flex-col md:flex-row gap-6">
+              <div className="md:w-1/3 flex flex-col items-center">
+                {currentVoter.avatar ? (
+                  <img
+                    src={currentVoter.avatar || "/placeholder.svg"}
+                    alt={currentVoter.name}
+                    className="h-36 w-36 rounded-full object-cover border-4 border-gray-100 shadow-md"
+                    onError={(e) => {
+                      e.target.onerror = null
+                      e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(currentVoter.name)}&background=random&color=fff&size=128`
+                    }}
+                  />
+                ) : (
+                  <div className="h-36 w-36 rounded-full bg-gradient-to-br from-blue-100 to-purple-100 flex items-center justify-center text-gray-600 text-5xl font-medium border-4 border-gray-100 shadow-md">
+                    {currentVoter.name.charAt(0)}
+                  </div>
+                )}
+
+                <h2 className="mt-4 text-xl font-bold text-center">{currentVoter.name}</h2>
+                <div className="mt-2 px-3 py-1 bg-blue-100 rounded-full text-blue-800 text-sm font-medium">
+                  {currentVoter.id || currentVoter.voterID}
+                </div>
+
+                <Badge
+                  variant={
+                    currentVoter.status === "Verified"
+                      ? "success"
+                      : currentVoter.status === "Pending"
+                        ? "warning"
+                        : "destructive"
+                  }
+                  className="mt-3 py-1 px-3"
+                >
+                  {currentVoter.status}
+                </Badge>
+              </div>
+
+              <div className="md:w-2/3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-500 mb-1">Personal Information</h4>
+                    <div className="space-y-2 rounded-lg border p-3 bg-gray-50">
+                      <div>
+                        <span className="text-xs font-medium text-gray-500 block">Date of Birth</span>
+                        <span className="text-sm font-medium text-gray-900">{currentVoter.dob}</span>
+                      </div>
+                      <div>
+                        <span className="text-xs font-medium text-gray-500 block">Gender</span>
+                        <span className="text-sm font-medium text-gray-900">{currentVoter.gender}</span>
+                      </div>
+                      <div>
+                        <span className="text-xs font-medium text-gray-500 block">Aadhaar</span>
+                        <span className="text-sm font-medium text-gray-900">{currentVoter.aadhaar}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-500 mb-1">Contact Information</h4>
+                    <div className="space-y-2 rounded-lg border p-3 bg-gray-50">
+                      <div>
+                        <span className="text-xs font-medium text-gray-500 block">Phone</span>
+                        <span className="text-sm font-medium text-gray-900">{currentVoter.phone}</span>
+                      </div>
+                      <div>
+                        <span className="text-xs font-medium text-gray-500 block">Email</span>
+                        <span className="text-sm font-medium text-gray-900">
+                          {currentVoter.email || "Not provided"}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <h4 className="text-sm font-medium text-gray-500 mb-1">Voting Information</h4>
+                    <div className="space-y-2 rounded-lg border p-3 bg-gray-50">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <span className="text-xs font-medium text-gray-500 block">Constituency</span>
+                          <span className="text-sm font-medium text-gray-900">{currentVoter.constituency}</span>
+                        </div>
+                        <div>
+                          <span className="text-xs font-medium text-gray-500 block">Polling Station</span>
+                          <span className="text-sm font-medium text-gray-900">{currentVoter.pollingStation}</span>
+                        </div>
+                        <div className="col-span-2">
+                          <span className="text-xs font-medium text-gray-500 block">Address</span>
+                          <span className="text-sm font-medium text-gray-900">{currentVoter.address}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-4 flex justify-end">
+                  <Link to="/dashboard/profile">
+                    <Button size="sm">
+                      View Full Profile
+                      <ChevronRight className="ml-1 h-4 w-4" />
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {/* Election Countdown Card */}
@@ -260,7 +464,9 @@ export default function DashboardHome() {
                   </div>
                   <span className="text-sm font-medium text-green-800">Voter ID</span>
                 </div>
-                <Badge variant="success">Verified</Badge>
+                <Badge variant={currentVoter?.status === "Verified" ? "success" : "warning"}>
+                  {currentVoter?.status || "Pending"}
+                </Badge>
               </div>
 
               <div className="flex items-center justify-between rounded-md bg-yellow-50 p-2">
@@ -297,12 +503,16 @@ export default function DashboardHome() {
                     <MapPin className="h-5 w-5 text-blue-600" />
                   </div>
                   <div>
-                    <h4 className="font-medium text-gray-900">Government High School, Sector 12</h4>
+                    <h4 className="font-medium text-gray-900">
+                      {currentVoter?.pollingStation || "Government High School, Sector 12"}
+                    </h4>
                     <p className="text-sm text-gray-600">Booth #42</p>
                   </div>
                 </div>
                 <div className="mt-3 rounded-md bg-white p-3 shadow-sm">
-                  <p className="text-sm text-gray-700">Plot No. 15, Sector 12, Gandhinagar, Gujarat - 382016</p>
+                  <p className="text-sm text-gray-700">
+                    {currentVoter?.address || "Plot No. 15, Sector 12, Gandhinagar, Gujarat - 382016"}
+                  </p>
                 </div>
               </div>
 

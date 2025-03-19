@@ -1,7 +1,8 @@
 "use client"
 
-import React, { useState } from "react"
+import React, { useState, useEffect } from "react"
 import { AlertCircle, Bell, Check, Globe, Info, Lock, Mail, Phone, Save, Shield, User } from "lucide-react"
+import { useVoters } from "../../context/VoterContext"
 
 // Simple utility function for combining class names without dependencies
 const cn = (...classes) => {
@@ -100,6 +101,8 @@ const Switch = React.forwardRef(({ className, ...props }, ref) => (
 Switch.displayName = "Switch"
 
 export default function SettingsPage() {
+  const { voters } = useVoters()
+  const [currentVoter, setCurrentVoter] = useState(null)
   const [userData, setUserData] = useState({
     name: "John Doe",
     email: "j****@example.com",
@@ -125,6 +128,34 @@ export default function SettingsPage() {
 
   const [activeTab, setActiveTab] = useState("profile")
   const [showSaveSuccess, setShowSaveSuccess] = useState(false)
+
+  // Get user data from session storage and find the corresponding voter
+  useEffect(() => {
+    const storedUserData = sessionStorage.getItem("userData")
+    if (storedUserData) {
+      const parsedUserData = JSON.parse(storedUserData)
+      setUserData({
+        ...userData,
+        ...parsedUserData,
+      })
+
+      // Find the voter with matching voter ID or Aadhaar
+      const matchingVoter = voters.find(
+        (voter) => voter.voterID === parsedUserData.voterID || voter.aadhaar === parsedUserData.aadhaar,
+      )
+
+      if (matchingVoter) {
+        setCurrentVoter(matchingVoter)
+        // Update userData with voter data
+        setUserData({
+          name: matchingVoter.name || parsedUserData.name,
+          email: matchingVoter.email || parsedUserData.email,
+          phone: matchingVoter.phone || parsedUserData.phone,
+          language: userData.language, // Keep the selected language
+        })
+      }
+    }
+  }, [voters])
 
   // Function to handle form submission
   const handleSubmit = (e) => {
@@ -214,14 +245,30 @@ export default function SettingsPage() {
             <form onSubmit={handleSubmit}>
               <div className="space-y-4">
                 <div className="flex flex-col items-center space-y-4 sm:flex-row sm:space-x-4 sm:space-y-0">
-                  <div className="flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-r from-blue-600 to-purple-600 p-1">
-                    <div className="flex h-full w-full items-center justify-center rounded-full bg-white">
-                      <User className="h-12 w-12 text-gray-400" />
+                  {currentVoter?.avatar ? (
+                    <div className="flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-r from-blue-600 to-purple-600 p-1 overflow-hidden">
+                      <img
+                        src={currentVoter.avatar || "/placeholder.svg"}
+                        alt={currentVoter.name}
+                        className="h-full w-full rounded-full object-cover"
+                        onError={(e) => {
+                          e.target.onerror = null
+                          e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(currentVoter.name)}&background=random&color=fff&size=128`
+                        }}
+                      />
                     </div>
-                  </div>
+                  ) : (
+                    <div className="flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-r from-blue-600 to-purple-600 p-1">
+                      <div className="flex h-full w-full items-center justify-center rounded-full bg-white">
+                        <User className="h-12 w-12 text-gray-400" />
+                      </div>
+                    </div>
+                  )}
                   <div>
-                    <h3 className="text-lg font-medium text-gray-900">{userData.name}</h3>
-                    <p className="text-sm text-gray-500">Voter ID: ABC12345678</p>
+                    <h3 className="text-lg font-medium text-gray-900">{currentVoter?.name || userData.name}</h3>
+                    <p className="text-sm text-gray-500">
+                      Voter ID: {currentVoter?.id || currentVoter?.voterID || "ABC12345678"}
+                    </p>
                     <div className="mt-2 rounded-md bg-yellow-50 px-3 py-1.5 text-xs text-yellow-800">
                       Profile details are synced with Aadhaar database
                     </div>
@@ -236,7 +283,7 @@ export default function SettingsPage() {
                     <input
                       id="name"
                       type="text"
-                      value={userData.name}
+                      value={currentVoter?.name || userData.name}
                       readOnly
                       className="w-full rounded-md border border-gray-200 bg-gray-50 p-2 text-sm"
                     />
@@ -248,7 +295,7 @@ export default function SettingsPage() {
                     <input
                       id="email"
                       type="email"
-                      value={userData.email}
+                      value={currentVoter?.email || userData.email}
                       readOnly
                       className="w-full rounded-md border border-gray-200 bg-gray-50 p-2 text-sm"
                     />
@@ -260,7 +307,7 @@ export default function SettingsPage() {
                     <input
                       id="phone"
                       type="tel"
-                      value={userData.phone}
+                      value={currentVoter?.phone || userData.phone}
                       readOnly
                       className="w-full rounded-md border border-gray-200 bg-gray-50 p-2 text-sm"
                     />
@@ -274,7 +321,7 @@ export default function SettingsPage() {
                       rows={3}
                       readOnly
                       className="w-full rounded-md border border-gray-200 bg-gray-50 p-2 text-sm"
-                      defaultValue="123 Main Street, Bangalore, Karnataka"
+                      defaultValue={currentVoter?.address || "123 Main Street, Bangalore, Karnataka"}
                     />
                   </div>
                 </div>

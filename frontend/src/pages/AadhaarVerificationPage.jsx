@@ -2,7 +2,8 @@
 
 import React, { useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { ChevronRight, Shield, User } from "lucide-react"
+import { ChevronRight, Shield, User, AlertCircle } from "lucide-react"
+import { useVoters } from "../context/VoterContext"
 
 // Simple utility function for combining class names without dependencies
 const cn = (...classes) => {
@@ -110,9 +111,11 @@ CardFooter.displayName = "CardFooter"
 
 export default function AadhaarVerificationPage() {
   const navigate = useNavigate()
+  const { voters } = useVoters()
   const [aadhaarNumber, setAadhaarNumber] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [errors, setErrors] = useState({})
+  const [verificationError, setVerificationError] = useState(null)
 
   // Format Aadhaar number with spaces
   const formatAadhaar = (value) => {
@@ -134,9 +137,14 @@ export default function AadhaarVerificationPage() {
     const formatted = formatAadhaar(e.target.value)
     setAadhaarNumber(formatted)
 
-    // Clear error when user types
+    // Clear errors when user types
     if (errors.aadhaar) {
       setErrors({ ...errors, aadhaar: null })
+    }
+
+    // Clear verification error when user types
+    if (verificationError) {
+      setVerificationError(null)
     }
   }
 
@@ -154,7 +162,6 @@ export default function AadhaarVerificationPage() {
       return false
     }
 
-    // In a real app, you would validate the Aadhaar number with an API
     return true
   }
 
@@ -162,20 +169,32 @@ export default function AadhaarVerificationPage() {
   const submitAadhaar = () => {
     if (validateAadhaar()) {
       setIsSubmitting(true)
+      setVerificationError(null)
 
-      // Simulate API call to verify Aadhaar
+      // Check if the Aadhaar exists in the voter database
+      const cleanAadhaar = aadhaarNumber.replace(/\s/g, "")
+      const matchingVoter = voters.find((voter) => voter.aadhaar === cleanAadhaar)
+
       setTimeout(() => {
         setIsSubmitting(false)
 
-        // Store Aadhaar in session storage to pass between pages
-        sessionStorage.setItem("aadhaarNumber", aadhaarNumber)
+        if (matchingVoter) {
+          // Store Aadhaar in session storage to pass between pages
+          sessionStorage.setItem("aadhaarNumber", aadhaarNumber)
+          sessionStorage.setItem("matchedVoter", JSON.stringify(matchingVoter))
 
-        // Generate masked phone number (in real app, this would come from API)
-        const lastFourDigits = aadhaarNumber.replace(/\s/g, "").slice(-4)
-        sessionStorage.setItem("maskedPhone", `******${lastFourDigits}`)
+          // Generate masked phone number (in real app, this would come from API)
+          const lastFourDigits = matchingVoter.phone.slice(-4)
+          sessionStorage.setItem("maskedPhone", `******${lastFourDigits}`)
 
-        // Navigate to OTP verification page
-        navigate("/verify-otp")
+          // Navigate to OTP verification page
+          navigate("/verify-otp")
+        } else {
+          // Show error message if Aadhaar is not found in the database
+          setVerificationError(
+            "No voter record found with this Aadhaar number. Please contact your local election office.",
+          )
+        }
       }, 1500)
     }
   }
@@ -245,14 +264,26 @@ export default function AadhaarVerificationPage() {
                   <p className="text-xs text-gray-500">Enter your 12-digit Aadhaar number to verify your identity</p>
                 </div>
 
+                {verificationError && (
+                  <div className="rounded-lg border border-red-200 bg-red-50 p-4">
+                    <div className="flex items-start space-x-3">
+                      <AlertCircle className="mt-0.5 h-5 w-5 text-red-600" />
+                      <div>
+                        <h4 className="text-sm font-medium text-red-800">Verification Failed</h4>
+                        <p className="mt-1 text-xs text-red-700">{verificationError}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 <div className="rounded-lg border border-blue-100 bg-blue-50 p-4">
                   <div className="flex items-start space-x-3">
                     <Shield className="mt-0.5 h-5 w-5 text-blue-600" />
                     <div>
                       <h4 className="text-sm font-medium text-blue-800">Why we need your Aadhaar</h4>
                       <p className="mt-1 text-xs text-blue-700">
-                        Your Aadhaar is used to verify your identity and send the voting QR code to your registered
-                        mobile number. We do not store your Aadhaar details.
+                        Your Aadhaar is used to verify your identity and match with your voter registration details. We
+                        do not store your Aadhaar details.
                       </p>
                     </div>
                   </div>
