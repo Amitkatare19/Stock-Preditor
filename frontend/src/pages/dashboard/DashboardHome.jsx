@@ -112,6 +112,7 @@ const Badge = React.forwardRef(({ className, variant, ...props }, ref) => {
           "border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80",
         variant === "outline" && "text-foreground",
         variant === "warning" && "border-transparent bg-yellow-100 text-yellow-800 hover:bg-yellow-200",
+        variant === "purple" && "border-transparent bg-purple-100 text-purple-800 hover:bg-purple-200",
         className,
       )}
       {...props}
@@ -156,6 +157,20 @@ export default function DashboardHome() {
   const [noVoterFound, setNoVoterFound] = useState(false)
   const navigate = useNavigate()
   const [activeElection, setActiveElection] = useState(true) // Set to true if there's an active election
+  const [hasVoted, setHasVoted] = useState(false) // Track voting status
+
+  // Initialize hasVoted state from sessionStorage
+  useEffect(() => {
+    // Force set hasVoted to false for testing/demo purposes
+    // Comment this line out in production
+    sessionStorage.setItem("hasVoted", "false")
+
+    // Now read the value from sessionStorage
+    const votedStatus = sessionStorage.getItem("hasVoted")
+    setHasVoted(votedStatus === "true")
+
+    console.log("Current voting status:", votedStatus)
+  }, [])
 
   // Get user data from session storage and find the corresponding voter
   useEffect(() => {
@@ -279,53 +294,67 @@ export default function DashboardHome() {
         </div>
       </div>
 
-      {/* Vote Now Card - NEW ADDITION */}
+      {/* Vote Now or Already Voted Card */}
       {activeElection && (
-        <Card className="mb-6 overflow-hidden border-2 border-green-500 bg-gradient-to-r from-green-50 to-blue-50">
-          <CardContent className="p-6">
-            <div className="flex flex-col md:flex-row items-center justify-between">
-              <div className="flex items-center mb-4 md:mb-0">
-                <div className="flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-full bg-green-100 mr-4">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="32"
-                    height="32"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="text-green-600"
-                  >
-                    <path d="m9 12 2 2 4-4"></path>
-                    <path d="M5 7c0-1.1.9-2 2-2h10a2 2 0 0 1 2 2v12H5V7z"></path>
-                    <path d="M22 19H2"></path>
-                  </svg>
-                </div>
-                <div>
-                  <h2 className="text-2xl font-bold text-green-800">Active Election</h2>
-                  <p className="text-green-700">Cast your vote for the General Elections 2025</p>
-                  <div className="flex items-center mt-2">
-                    <Badge variant="success" className="mr-2">
-                      Live Now
-                    </Badge>
-                    <span className="text-sm text-gray-600">Ends in 2 days</span>
-                  </div>
-                </div>
-              </div>
-              <Link to="/voting/verify" className="w-full md:w-auto">
-                <Button
-                  size="lg"
-                  className="w-full md:w-auto bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg shadow-md hover:shadow-lg transition-all"
+        <div className="mt-6">
+          {hasVoted ? (
+            <div className="group flex flex-col items-center justify-center rounded-lg border-2 border-purple-500 bg-gradient-to-r from-purple-50 to-blue-50 p-6 text-center transition-all hover:shadow-lg">
+              <div className="mb-3 flex h-16 w-16 items-center justify-center rounded-full bg-purple-100 text-purple-600 transition-transform group-hover:scale-110">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="32"
+                  height="32"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
                 >
-                  Vote Now
-                  <ChevronRight className="ml-2 h-5 w-5" />
-                </Button>
-              </Link>
+                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                  <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                </svg>
+              </div>
+              <span className="text-xl font-bold text-purple-800">You Have Voted</span>
+              <p className="mt-2 text-purple-700">Thank you for participating in the General Elections 2025</p>
+              <Badge variant="purple" className="mt-2">
+                Vote Recorded
+              </Badge>
+              <div className="mt-4 text-sm text-gray-600">
+                <p>Your vote has been securely recorded and counted.</p>
+                <p className="mt-1">You can view your vote receipt in your documents section.</p>
+              </div>
             </div>
-          </CardContent>
-        </Card>
+          ) : (
+            <Link
+              to="/voting/verify"
+              className="group flex flex-col items-center justify-center rounded-lg border-2 border-indigo-500 bg-gradient-to-r from-indigo-50 to-blue-50 p-6 text-center transition-all hover:shadow-lg"
+            >
+              <div className="mb-3 flex h-16 w-16 items-center justify-center rounded-full bg-indigo-100 text-indigo-600 transition-transform group-hover:scale-110">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="32"
+                  height="32"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="m9 12 2 2 4-4"></path>
+                  <path d="M5 7c0-1.1.9-2 2-2h10a2 2 0 0 1 2 2v12H5V7z"></path>
+                  <path d="M22 19H2"></path>
+                </svg>
+              </div>
+              <span className="text-xl font-bold text-indigo-800">Cast Your Vote Now</span>
+              <p className="mt-2 text-indigo-700">Participate in the General Elections 2025</p>
+              <Badge variant="purple" className="mt-2">
+                Active Election
+              </Badge>
+            </Link>
+          )}
+        </div>
       )}
 
       {/* No Voter Record Found Message */}
@@ -629,34 +658,82 @@ export default function DashboardHome() {
 
       {/* Vote Now Quick Action - NEW ADDITION */}
       {activeElection && (
-        <div className="mt-6">
-          <Link
-            to="/voting/verify"
-            className="group flex flex-col items-center justify-center rounded-lg border-2 border-green-500 bg-gradient-to-r from-green-50 to-blue-50 p-6 text-center transition-all hover:shadow-lg"
-          >
-            <div className="mb-3 flex h-16 w-16 items-center justify-center rounded-full bg-green-100 text-green-600 transition-transform group-hover:scale-110">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="32"
-                height="32"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="m9 12 2 2 4-4"></path>
-                <path d="M5 7c0-1.1.9-2 2-2h10a2 2 0 0 1 2 2v12H5V7z"></path>
-                <path d="M22 19H2"></path>
-              </svg>
+        <div className="mt-8">
+          <h2 className="mb-4 text-xl font-bold text-gray-900">Election Status</h2>
+          {hasVoted ? (
+            <div className="rounded-lg border-2 border-purple-500 bg-gradient-to-r from-purple-50 to-blue-50 p-4">
+              <div className="flex items-center">
+                <div className="mr-4 flex h-12 w-12 items-center justify-center rounded-full bg-purple-100">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="text-purple-600"
+                  >
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                    <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-lg font-medium text-purple-800">Vote Successfully Cast</h3>
+                  <p className="text-purple-700">Your vote for the General Elections 2025 has been recorded</p>
+                  <div className="mt-2 flex items-center">
+                    <Badge variant="purple" className="mr-2">
+                      Completed
+                    </Badge>
+                    <span className="text-sm text-gray-600">Voted on {new Date().toLocaleDateString()}</span>
+                  </div>
+                </div>
+              </div>
             </div>
-            <span className="text-xl font-bold text-green-800">Cast Your Vote Now</span>
-            <p className="mt-2 text-green-700">Participate in the General Elections 2025</p>
-            <Badge variant="success" className="mt-2">
-              Active Election
-            </Badge>
-          </Link>
+          ) : (
+            <div className="rounded-lg border-2 border-indigo-300 bg-gradient-to-r from-indigo-50 to-blue-50 p-4">
+              <div className="flex items-center">
+                <div className="mr-4 flex h-12 w-12 items-center justify-center rounded-full bg-indigo-100">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="text-indigo-600"
+                  >
+                    <path d="M12 8v4l3 3"></path>
+                    <circle cx="12" cy="12" r="10"></circle>
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-lg font-medium text-indigo-800">You Haven't Voted Yet</h3>
+                  <p className="text-indigo-700">The General Elections 2025 are currently active</p>
+                  <div className="mt-2 flex items-center">
+                    <Badge variant="purple" className="mr-2">
+                      Pending
+                    </Badge>
+                    <span className="text-sm text-gray-600">Ends in 2 days</span>
+                  </div>
+                </div>
+              </div>
+              <div className="mt-3 text-right">
+                <Link
+                  to="/voting/verify"
+                  className="inline-flex items-center rounded-md bg-indigo-100 px-4 py-2 text-sm font-medium text-indigo-800 hover:bg-indigo-200"
+                >
+                  Vote Now
+                  <ChevronRight className="ml-1 h-4 w-4" />
+                </Link>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

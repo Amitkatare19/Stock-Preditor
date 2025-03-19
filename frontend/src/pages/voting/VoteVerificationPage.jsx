@@ -1,3 +1,5 @@
+"use client"
+
 import { Clock, Fingerprint, Shield, Smartphone, User } from "lucide-react"
 import { VerificationProvider, useVerification } from "../../context/VerificationContext"
 import {
@@ -18,6 +20,8 @@ import BiometricVerification from "../../components/verification/BiometricVerifi
 import DigitalSignature from "../../components/verification/DigitalSignature"
 import VerificationSuccess from "../../components/verification/VerificationSuccess"
 import AlternativeVerification from "../../components/verification/AlternativeVerification"
+import { useEffect } from "react"
+import { useNavigate } from "react-router-dom"
 
 const VerificationContent = () => {
   const {
@@ -34,6 +38,16 @@ const VerificationContent = () => {
     setAlertMessage,
     setError,
   } = useVerification()
+
+  const navigate = useNavigate()
+
+  // Check if user has already voted
+  useEffect(() => {
+    const hasVoted = sessionStorage.getItem("hasVoted") === "true"
+    if (hasVoted) {
+      navigate("/dashboard")
+    }
+  }, [navigate])
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-blue-50 via-white to-purple-50 px-4 py-12 sm:px-6 lg:px-8">
@@ -148,14 +162,16 @@ const VerificationContent = () => {
                       <>
                         {!secondaryVerificationComplete ? (
                           <>
-                            {showAlternativeMethod && <AlternativeVerification />}
-                            {!showAlternativeMethod ? verificationMethod === "facial" && <FacialVerification /> : null}
-
-                            {verificationMethod === "document" && <DocumentVerification />}
-
-                            {verificationMethod === "biometric" && <BiometricVerification />}
-
-                            {verificationMethod === "signature" && <DigitalSignature />}
+                            {showAlternativeMethod ? (
+                              <AlternativeVerification />
+                            ) : (
+                              <>
+                                {verificationMethod === "facial" && <FacialVerification />}
+                                {verificationMethod === "document" && <DocumentVerification />}
+                                {verificationMethod === "biometric" && <BiometricVerification />}
+                                {verificationMethod === "signature" && <DigitalSignature />}
+                              </>
+                            )}
                           </>
                         ) : null}
                       </>

@@ -245,6 +245,9 @@ export const VerificationProvider = ({ children }) => {
     setShowAlternativeMethod(true)
     setVerificationMethod("alternative")
     showAlert("Switched to alternative verification method.", "info")
+
+    // Log this event for security purposes
+    console.log(`User switched to alternative verification. Device: ${deviceFingerprint}, IP: ${ipAddress}`)
   }
 
   // Load user data from session storage or use mock data for testing

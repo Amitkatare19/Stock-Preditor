@@ -815,6 +815,16 @@ const FacialVerification = () => {
         )}
       </div>
 
+      {/* Alternative verification option button */}
+      <div className="mt-4 text-center">
+        <button
+          onClick={switchToAlternativeVerification}
+          className="text-sm text-blue-600 hover:text-blue-800 hover:underline"
+        >
+          Having trouble? Use alternative verification method
+        </button>
+      </div>
+
       {error && !alertMessage && (
         <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-center text-sm text-red-700">
           <AlertCircle className="mr-1 inline-block h-4 w-4" />

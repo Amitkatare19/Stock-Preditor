@@ -43,6 +43,8 @@ const Button = React.forwardRef(
     else if (variant === "secondary") variantClasses = "bg-secondary text-secondary-foreground hover:bg-secondary/80"
     else if (variant === "ghost") variantClasses = "hover:bg-accent hover:text-accent-foreground"
     else if (variant === "link") variantClasses = "text-primary underline-offset-4 hover:underline"
+    else if (variant === "indigo") variantClasses = "bg-indigo-600 text-white hover:bg-indigo-700"
+    else if (variant === "purple") variantClasses = "bg-purple-600 text-white hover:bg-purple-700"
 
     let sizeClasses = ""
     if (size === "default") sizeClasses = "h-10 px-4 py-2"
@@ -110,6 +112,8 @@ const Badge = React.forwardRef(({ className, variant = "default", ...props }, re
     warning: "bg-yellow-100 text-yellow-800 hover:bg-yellow-200",
     danger: "bg-red-100 text-red-800 hover:bg-red-200",
     info: "bg-blue-100 text-blue-800 hover:bg-blue-200",
+    purple: "bg-purple-100 text-purple-800 hover:bg-purple-200",
+    indigo: "bg-indigo-100 text-indigo-800 hover:bg-indigo-200",
   }
 
   return (
@@ -225,7 +229,7 @@ const ProgressBar = ({ value, max, className }) => {
   return (
     <div className={cn("h-2 w-full overflow-hidden rounded-full bg-gray-200", className)}>
       <div
-        className="h-full bg-gradient-to-r from-blue-500 to-purple-500 transition-all duration-500 ease-in-out"
+        className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 transition-all duration-500 ease-in-out"
         style={{ width: `${percentage}%` }}
       />
     </div>
@@ -289,6 +293,14 @@ export default function VotingPage() {
   const [loadingProgress, setLoadingProgress] = useState(0)
   const [showFilters, setShowFilters] = useState(false)
 
+  // Check if user has already voted
+  useEffect(() => {
+    const hasVoted = sessionStorage.getItem("hasVoted") === "true"
+    if (hasVoted) {
+      navigate("/dashboard")
+    }
+  }, [navigate])
+
   // Animated elements
   const [animatedElements, setAnimatedElements] = useState({
     header: false,
@@ -334,7 +346,7 @@ export default function VotingPage() {
         symbol: "🌷", // Lotus symbol
         image: "/placeholder.svg?height=100&width=100",
         color: "bg-orange-100 border-orange-300",
-        buttonColor: "bg-orange-600 hover:bg-orange-700",
+        buttonColor: "bg-indigo-600 hover:bg-indigo-700",
         category: "national",
         details: {
           age: 52,
@@ -366,7 +378,7 @@ export default function VotingPage() {
         symbol: "✋", // Hand symbol
         image: "/placeholder.svg?height=100&width=100",
         color: "bg-blue-100 border-blue-300",
-        buttonColor: "bg-blue-600 hover:bg-blue-700",
+        buttonColor: "bg-indigo-600 hover:bg-indigo-700",
         category: "national",
         details: {
           age: 48,
@@ -398,7 +410,7 @@ export default function VotingPage() {
         symbol: "🚲", // Bicycle symbol
         image: "/placeholder.svg?height=100&width=100",
         color: "bg-green-100 border-green-300",
-        buttonColor: "bg-green-600 hover:bg-green-700",
+        buttonColor: "bg-indigo-600 hover:bg-indigo-700",
         category: "regional",
         details: {
           age: 45,
@@ -430,7 +442,7 @@ export default function VotingPage() {
         symbol: "🔔", // Bell symbol
         image: "/placeholder.svg?height=100&width=100",
         color: "bg-purple-100 border-purple-300",
-        buttonColor: "bg-purple-600 hover:bg-purple-700",
+        buttonColor: "bg-indigo-600 hover:bg-indigo-700",
         category: "regional",
         details: {
           age: 39,
@@ -462,7 +474,7 @@ export default function VotingPage() {
         symbol: "🌟", // Star symbol
         image: "/placeholder.svg?height=100&width=100",
         color: "bg-yellow-100 border-yellow-300",
-        buttonColor: "bg-yellow-600 hover:bg-yellow-700",
+        buttonColor: "bg-indigo-600 hover:bg-indigo-700",
         category: "independent",
         details: {
           age: 41,
@@ -494,7 +506,7 @@ export default function VotingPage() {
         symbol: "📝", // Pencil symbol
         image: "/placeholder.svg?height=100&width=100",
         color: "bg-gray-100 border-gray-300",
-        buttonColor: "bg-gray-600 hover:bg-gray-700",
+        buttonColor: "bg-indigo-600 hover:bg-indigo-700",
         category: "independent",
         details: {
           age: 36,
@@ -588,11 +600,15 @@ export default function VotingPage() {
       setIsVoting(false)
       setShowSuccessAnimation(true)
 
-      // Hide success animation after 3 seconds
-      setTimeout(() => setShowSuccessAnimation(false), 3000)
-
       // Store vote status in session
       sessionStorage.setItem("hasVoted", "true")
+      // Store vote timestamp
+      sessionStorage.setItem("voteTimestamp", new Date().toISOString())
+      // Store receipt in session storage for reference
+      sessionStorage.setItem("voteReceipt", JSON.stringify(receipt))
+
+      // Hide success animation after 3 seconds
+      setTimeout(() => setShowSuccessAnimation(false), 3000)
     }, 2000)
   }
 
@@ -627,7 +643,7 @@ export default function VotingPage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-gradient-to-br from-blue-50 via-white to-purple-50 px-4 py-8 sm:px-6 lg:px-8">
+    <div className="flex min-h-screen flex-col bg-gradient-to-br from-indigo-50 via-white to-purple-50 px-4 py-8 sm:px-6 lg:px-8">
       <div className="mx-auto w-full max-w-5xl space-y-6">
         {/* Header */}
         <div
@@ -639,7 +655,7 @@ export default function VotingPage() {
           <div className="flex flex-col items-center justify-between space-y-4 sm:flex-row sm:space-y-0">
             <div>
               <h1 className="text-center text-3xl font-bold tracking-tight text-gray-900 sm:text-left">
-                <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                <span className="bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
                   Cast Your Vote
                 </span>
               </h1>
@@ -667,7 +683,7 @@ export default function VotingPage() {
               <div className="overflow-hidden rounded-lg border border-gray-200 bg-white/80 px-4 py-3 shadow-sm backdrop-blur-sm">
                 <div className="flex flex-wrap items-center justify-between gap-4">
                   <div className="flex items-center space-x-4">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-r from-blue-500 to-purple-600">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-r from-indigo-500 to-purple-600">
                       <User className="h-6 w-6 text-white" />
                     </div>
                     <div>
@@ -685,7 +701,7 @@ export default function VotingPage() {
                     </div>
                   </div>
 
-                  <Badge variant="info" className="animate-pulse">
+                  <Badge variant="indigo" className="animate-pulse">
                     <Clock className="mr-1 h-3.5 w-3.5" />
                     <span>Voting in progress</span>
                   </Badge>
@@ -703,13 +719,13 @@ export default function VotingPage() {
           )}
         >
           <Card className="overflow-hidden border-none bg-white/90 shadow-xl backdrop-blur-sm">
-            <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-transparent to-purple-500/5 opacity-50" />
-            <div className="absolute -top-20 -right-20 h-60 w-60 rounded-full bg-gradient-to-br from-blue-500/10 to-purple-500/10 blur-3xl" />
-            <div className="absolute -bottom-20 -left-20 h-60 w-60 rounded-full bg-gradient-to-br from-purple-500/10 to-blue-500/10 blur-3xl" />
+            <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 via-transparent to-purple-500/5 opacity-50" />
+            <div className="absolute -top-20 -right-20 h-60 w-60 rounded-full bg-gradient-to-br from-indigo-500/10 to-purple-500/10 blur-3xl" />
+            <div className="absolute -bottom-20 -left-20 h-60 w-60 rounded-full bg-gradient-to-br from-purple-500/10 to-indigo-500/10 blur-3xl" />
 
             <CardHeader className="relative space-y-1 border-b border-gray-100 pb-4">
               <div className="mb-2 flex items-center justify-between">
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-r from-blue-500 to-purple-600 shadow-md">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-r from-indigo-500 to-purple-600 shadow-md">
                   <Vote className="h-6 w-6 text-white" />
                 </div>
                 <div className="flex items-center space-x-2">
@@ -743,12 +759,12 @@ export default function VotingPage() {
               <div className="space-y-6">
                 {/* Help section */}
                 {showHelp && (
-                  <div className="rounded-lg border border-blue-100 bg-blue-50 p-4 text-sm">
-                    <h4 className="mb-2 flex items-center font-medium text-blue-800">
+                  <div className="rounded-lg border border-indigo-100 bg-indigo-50 p-4 text-sm">
+                    <h4 className="mb-2 flex items-center font-medium text-indigo-800">
                       <HelpCircle className="mr-2 h-4 w-4" />
                       Voting Instructions
                     </h4>
-                    <div className="space-y-2 text-blue-700">
+                    <div className="space-y-2 text-indigo-700">
                       <p>• Review each candidate's information carefully before making your choice.</p>
                       <p>• Click on a candidate card to select them.</p>
                       <p>• Click "View Details" to see more information about a candidate.</p>
@@ -756,7 +772,7 @@ export default function VotingPage() {
                       <p>• You will have one final chance to confirm before your vote is recorded.</p>
                       <p>• Once submitted, your vote cannot be changed.</p>
                     </div>
-                    <button onClick={toggleHelp} className="mt-2 text-blue-600 hover:text-blue-800 hover:underline">
+                    <button onClick={toggleHelp} className="mt-2 text-indigo-600 hover:text-indigo-800 hover:underline">
                       Close Help
                     </button>
                   </div>
@@ -780,7 +796,7 @@ export default function VotingPage() {
                             placeholder="Search candidates or parties..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full rounded-md border border-gray-300 bg-white px-4 py-2 pl-10 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                            className="w-full rounded-md border border-gray-300 bg-white px-4 py-2 pl-10 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                           />
                           <div className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
                             <svg
@@ -818,7 +834,7 @@ export default function VotingPage() {
                               onClick={() => setActiveTab("all")}
                               className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
                                 activeTab === "all"
-                                  ? "bg-blue-100 text-blue-800"
+                                  ? "bg-indigo-100 text-indigo-800"
                                   : "bg-white text-gray-700 hover:bg-gray-100"
                               }`}
                             >
@@ -862,7 +878,7 @@ export default function VotingPage() {
                     {/* Candidates list */}
                     {loadingProgress < 100 ? (
                       <div className="flex flex-col items-center justify-center py-8">
-                        <Loader2 className="mb-2 h-8 w-8 animate-spin text-blue-500" />
+                        <Loader2 className="mb-2 h-8 w-8 animate-spin text-indigo-500" />
                         <p className="text-sm text-gray-500">Loading candidates...</p>
                         <div className="mt-4 w-64">
                           <ProgressBar value={loadingProgress} max={100} />
@@ -884,7 +900,7 @@ export default function VotingPage() {
                             className={cn(
                               "group relative cursor-pointer overflow-hidden rounded-lg border p-4 transition-all hover:shadow-md",
                               selectedCandidate?.id === candidate.id
-                                ? "border-blue-500 bg-blue-50 ring-2 ring-blue-500 ring-opacity-50"
+                                ? "border-indigo-500 bg-indigo-50 ring-2 ring-indigo-500 ring-opacity-50"
                                 : `${candidate.color} hover:border-gray-300`,
                             )}
                             onClick={() => selectCandidate(candidate)}
@@ -919,7 +935,7 @@ export default function VotingPage() {
                                 </div>
                               </div>
                               {selectedCandidate?.id === candidate.id && (
-                                <div className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full bg-blue-500 text-white">
+                                <div className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full bg-indigo-500 text-white">
                                   <Check className="h-4 w-4" />
                                 </div>
                               )}
@@ -963,7 +979,7 @@ export default function VotingPage() {
                       <Button
                         onClick={submitVote}
                         disabled={!selectedCandidate || isVoting}
-                        className="group relative w-full overflow-hidden rounded-md bg-gradient-to-r from-blue-600 to-purple-600 px-8 py-3 text-white transition-all hover:from-blue-700 hover:to-purple-700 sm:w-auto"
+                        className="group relative w-full overflow-hidden rounded-md bg-gradient-to-r from-indigo-600 to-purple-600 px-8 py-3 text-white transition-all hover:from-indigo-700 hover:to-purple-700 sm:w-auto"
                       >
                         <span className="relative z-10 flex items-center justify-center">
                           {isVoting ? (
@@ -975,22 +991,22 @@ export default function VotingPage() {
                             <>Submit Vote</>
                           )}
                         </span>
-                        <span className="absolute inset-0 -translate-y-full bg-gradient-to-r from-blue-700 to-purple-700 transition-transform duration-300 ease-out group-hover:translate-y-0"></span>
+                        <span className="absolute inset-0 -translate-y-full bg-gradient-to-r from-indigo-700 to-purple-700 transition-transform duration-300 ease-out group-hover:translate-y-0"></span>
                       </Button>
                     </div>
                   </>
                 ) : (
                   // Vote submitted success
                   <div className="space-y-6">
-                    <div className="relative flex flex-col items-center justify-center overflow-hidden rounded-lg border border-green-200 bg-green-50 p-6">
+                    <div className="relative flex flex-col items-center justify-center overflow-hidden rounded-lg border border-purple-200 bg-purple-50 p-6">
                       {showSuccessAnimation && (
                         <div className="absolute inset-0 flex items-center justify-center">
-                          <div className="h-full w-full animate-pulse bg-green-400/20"></div>
+                          <div className="h-full w-full animate-pulse bg-purple-400/20"></div>
                           <div className="absolute -inset-10 animate-spin-slow">
                             {[...Array(12)].map((_, i) => (
                               <div
                                 key={i}
-                                className="absolute h-2 w-2 rounded-full bg-green-500"
+                                className="absolute h-2 w-2 rounded-full bg-purple-500"
                                 style={{
                                   top: `${50 + 45 * Math.sin(i * (Math.PI / 6))}%`,
                                   left: `${50 + 45 * Math.cos(i * (Math.PI / 6))}%`,
@@ -1003,17 +1019,17 @@ export default function VotingPage() {
                         </div>
                       )}
 
-                      <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-100 shadow-inner">
-                        <CheckCircle2 className="h-8 w-8 text-green-600" />
+                      <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-purple-100 shadow-inner">
+                        <CheckCircle2 className="h-8 w-8 text-purple-600" />
                       </div>
-                      <h3 className="text-lg font-medium text-green-800">Vote Recorded Successfully</h3>
-                      <p className="mt-2 text-center text-sm text-green-700">
+                      <h3 className="text-lg font-medium text-purple-800">Vote Recorded Successfully</h3>
+                      <p className="mt-2 text-center text-sm text-purple-700">
                         Your vote has been securely recorded. Thank you for participating in the democratic process.
                       </p>
 
                       {/* Vote receipt */}
                       {voteReceipt && (
-                        <div className="mt-4 w-full rounded-lg border border-green-200 bg-white p-4 text-sm shadow-sm">
+                        <div className="mt-4 w-full rounded-lg border border-purple-200 bg-white p-4 text-sm shadow-sm">
                           <div className="mb-2 flex items-center justify-between">
                             <h4 className="font-medium text-gray-800">Vote Receipt</h4>
                             <button
@@ -1071,13 +1087,14 @@ export default function VotingPage() {
                     <div className="flex justify-center">
                       <Button
                         onClick={returnToDashboard}
-                        className="group relative overflow-hidden rounded-md bg-gradient-to-r from-blue-600 to-purple-600 px-6 py-2 text-white transition-all hover:from-blue-700 hover:to-purple-700"
+                        variant="indigo"
+                        className="group relative overflow-hidden rounded-md px-6 py-2 transition-all"
                       >
                         <span className="relative z-10 flex items-center">
                           Return to Dashboard
                           <ChevronRight className="ml-1 h-4 w-4" />
                         </span>
-                        <span className="absolute inset-0 -translate-y-full bg-gradient-to-r from-blue-700 to-purple-700 transition-transform duration-300 ease-out group-hover:translate-y-0"></span>
+                        <span className="absolute inset-0 -translate-y-full bg-gradient-to-r from-indigo-700 to-purple-700 transition-transform duration-300 ease-out group-hover:translate-y-0"></span>
                       </Button>
                     </div>
                   </div>
@@ -1092,7 +1109,7 @@ export default function VotingPage() {
               </p>
               <p>
                 Having trouble?{" "}
-                <a href="#" className="text-blue-600 hover:text-blue-800 hover:underline">
+                <a href="#" className="text-indigo-600 hover:text-indigo-800 hover:underline">
                   Contact election support
                 </a>
               </p>
@@ -1109,7 +1126,7 @@ export default function VotingPage() {
         >
           <div className="rounded-lg border border-gray-200 bg-white/80 p-4 text-center text-sm text-gray-600 backdrop-blur-sm">
             <p className="flex items-center justify-center">
-              <Sparkles className="mr-2 h-4 w-4 text-blue-500" />
+              <Sparkles className="mr-2 h-4 w-4 text-indigo-500" />
               <span>Your vote matters! Thank you for participating in the democratic process.</span>
             </p>
           </div>
@@ -1180,7 +1197,7 @@ export default function VotingPage() {
                   selectCandidate(selectedCandidateDetails)
                   setShowCandidateDetails(false)
                 }}
-                className={`rounded-md px-4 py-2 text-sm font-medium text-white transition-colors ${selectedCandidateDetails.buttonColor}`}
+                className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-700"
               >
                 Select Candidate
               </button>
@@ -1224,7 +1241,7 @@ export default function VotingPage() {
               </button>
               <button
                 onClick={confirmVote}
-                className="rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-green-700"
+                className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-700"
               >
                 Confirm Vote
               </button>
@@ -1249,7 +1266,7 @@ export default function VotingPage() {
           <div className="flex justify-center pt-2">
             <button
               onClick={() => navigate("/voting/verify")}
-              className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+              className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
             >
               Verify Identity Again
             </button>

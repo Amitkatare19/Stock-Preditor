@@ -1,32 +1,40 @@
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom"
+"use client"
+
+import { useEffect } from "react"
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom"
 import HomePage from "./pages/HomePage"
 import AadhaarVerificationPage from "./pages/AadhaarVerificationPage"
 import OtpVerificationPage from "./pages/OtpVerificationPage"
 import SuccessPage from "./pages/SuccessPage"
+import NotFoundPage from "./pages/NotFoundPage"
 import DashboardLayout from "./layouts/DashboardLayout"
 import DashboardHome from "./pages/dashboard/DashboardHome"
 import ProfilePage from "./pages/dashboard/ProfilePage"
 import ElectionsPage from "./pages/dashboard/ElectionsPage"
+import ElectionDetailsPage from "./pages/dashboard/ElectionDetailsPage"
 import DocumentsPage from "./pages/dashboard/DocumentsPage"
 import SettingsPage from "./pages/dashboard/SettingsPage"
 import HelpSupportPage from "./pages/dashboard/HelpSupportPage"
-import ElectionDetailsPage from "./pages/dashboard/ElectionDetailsPage"
 import PollingMapPage from "./pages/dashboard/PollingMapPage"
-import NotFoundPage from "./pages/NotFoundPage"
 import VoteVerificationPage from "./pages/voting/VoteVerificationPage"
 import VotingPage from "./pages/voting/VotingPage"
-
-// Admin imports - simplified for voter registration only
 import AdminDashboard from "./pages/admin/AdminDashboard"
 import AdminHome from "./pages/admin/AdminHome"
-import RegisterUserPage from "./pages/admin/RegisterUserPage"
 import VoterManagement from "./pages/admin/VoterManagement"
+import RegisterUserPage from "./pages/admin/RegisterUserPage"
+import { VerificationProvider } from "./context/VerificationContext"
 import { VoterProvider } from "./context/VoterContext"
+import { initializeUserVotingStatus } from "./utils/voterStatusUtils"
 
-export default function App() {
+function App() {
+  // Initialize user voting status when the app loads
+  useEffect(() => {
+    initializeUserVotingStatus()
+  }, [])
+
   return (
-    <Router>
-      <VoterProvider>
+    <VoterProvider>
+      <Router>
         <Routes>
           {/* Public routes */}
           <Route path="/" element={<HomePage />} />
@@ -34,11 +42,7 @@ export default function App() {
           <Route path="/verify-otp" element={<OtpVerificationPage />} />
           <Route path="/success" element={<SuccessPage />} />
 
-          {/* Voting routes */}
-          <Route path="/voting/verify" element={<VoteVerificationPage />} />
-          <Route path="/voting/cast-vote" element={<VotingPage />} />
-
-          {/* Dashboard routes with shared layout */}
+          {/* Dashboard routes */}
           <Route path="/dashboard" element={<DashboardLayout />}>
             <Route index element={<DashboardHome />} />
             <Route path="profile" element={<ProfilePage />} />
@@ -46,22 +50,36 @@ export default function App() {
             <Route path="elections/:id" element={<ElectionDetailsPage />} />
             <Route path="documents" element={<DocumentsPage />} />
             <Route path="settings" element={<SettingsPage />} />
-            <Route path="help" element={<HelpSupportPage />} />
+            <Route path="help-support" element={<HelpSupportPage />} />
             <Route path="polling-map" element={<PollingMapPage />} />
           </Route>
 
-          {/* Admin routes - simplified for voter registration only */}
+          {/* Voting routes */}
+          <Route
+            path="/voting/verify"
+            element={
+              <VerificationProvider>
+                <VoteVerificationPage />
+              </VerificationProvider>
+            }
+          />
+          <Route path="/voting" element={<VotingPage />} />
+
+          {/* Admin routes */}
           <Route path="/admin" element={<AdminDashboard />}>
             <Route index element={<AdminHome />} />
-            <Route path="register-user" element={<RegisterUserPage />} />
             <Route path="voters" element={<VoterManagement />} />
+            <Route path="register" element={<RegisterUserPage />} />
           </Route>
 
-          {/* 404 page */}
-          <Route path="*" element={<NotFoundPage />} />
+          {/* Fallback routes */}
+          <Route path="/404" element={<NotFoundPage />} />
+          <Route path="*" element={<Navigate to="/404" replace />} />
         </Routes>
-      </VoterProvider>
-    </Router>
+      </Router>
+    </VoterProvider>
   )
 }
+
+export default App
 
