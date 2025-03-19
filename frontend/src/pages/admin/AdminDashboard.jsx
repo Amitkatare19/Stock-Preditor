@@ -2,21 +2,7 @@
 
 import React, { useState } from "react"
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom"
-import {
-  BarChart3,
-  Calendar,
-  ChevronDown,
-  FileText,
-  Home,
-  LogOut,
-  MapPin,
-  Menu,
-  Settings,
-  Shield,
-  User,
-  Users,
-  X,
-} from "lucide-react"
+import { ChevronDown, LogOut, Menu, Shield, User, Users, X } from "lucide-react"
 
 // Simple utility function for combining class names without dependencies
 const cn = (...classes) => {
@@ -101,48 +87,22 @@ export default function AdminDashboard() {
     navigate("/")
   }
 
-  // Navigation items
+  // Navigation items - simplified to focus only on voter registration
   const navigationItems = [
     {
       name: "Dashboard",
       path: "/admin",
-      icon: Home,
-    },
-    {
-      name: "Voter Management",
-      path: "/admin/voters",
       icon: Users,
     },
     {
       name: "Register New Voter",
       path: "/admin/register-user",
       icon: User,
-      badge: { text: "New", variant: "success" },
     },
     {
-      name: "Election Management",
-      path: "/admin/elections",
-      icon: Calendar,
-    },
-    {
-      name: "Polling Stations",
-      path: "/admin/polling-stations",
-      icon: MapPin,
-    },
-    {
-      name: "Reports",
-      path: "/admin/reports",
-      icon: FileText,
-    },
-    {
-      name: "Statistics",
-      path: "/admin/statistics",
-      icon: BarChart3,
-    },
-    {
-      name: "Settings",
-      path: "/admin/settings",
-      icon: Settings,
+      name: "Voter Management",
+      path: "/admin/voters",
+      icon: Users,
     },
   ]
 

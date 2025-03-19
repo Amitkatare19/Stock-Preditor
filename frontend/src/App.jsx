@@ -14,45 +14,46 @@ import ElectionDetailsPage from "./pages/dashboard/ElectionDetailsPage"
 import PollingMapPage from "./pages/dashboard/PollingMapPage"
 import NotFoundPage from "./pages/NotFoundPage"
 
-// Admin imports
+// Admin imports - simplified for voter registration only
 import AdminDashboard from "./pages/admin/AdminDashboard"
 import AdminHome from "./pages/admin/AdminHome"
 import RegisterUserPage from "./pages/admin/RegisterUserPage"
 import VoterManagement from "./pages/admin/VoterManagement"
-import ElectionManagement from "./pages/admin/ElectionManagement"
+import { VoterProvider } from "./context/VoterContext"
 
 export default function App() {
   return (
-      <Routes>
-        {/* Public routes */}
-        <Route path="/" element={<HomePage />} />
-        <Route path="/verify-aadhaar" element={<AadhaarVerificationPage />} />
-        <Route path="/verify-otp" element={<OtpVerificationPage />} />
-        <Route path="/success" element={<SuccessPage />} />
+      <VoterProvider>
+        <Routes>
+          {/* Public routes */}
+          <Route path="/" element={<HomePage />} />
+          <Route path="/verify-aadhaar" element={<AadhaarVerificationPage />} />
+          <Route path="/verify-otp" element={<OtpVerificationPage />} />
+          <Route path="/success" element={<SuccessPage />} />
 
-        {/* Dashboard routes with shared layout */}
-        <Route path="/dashboard" element={<DashboardLayout />}>
-          <Route index element={<DashboardHome />} />
-          <Route path="profile" element={<ProfilePage />} />
-          <Route path="elections" element={<ElectionsPage />} />
-          <Route path="elections/:id" element={<ElectionDetailsPage />} />
-          <Route path="documents" element={<DocumentsPage />} />
-          <Route path="settings" element={<SettingsPage />} />
-          <Route path="help" element={<HelpSupportPage />} />
-          <Route path="polling-map" element={<PollingMapPage />} />
-        </Route>
+          {/* Dashboard routes with shared layout */}
+          <Route path="/dashboard" element={<DashboardLayout />}>
+            <Route index element={<DashboardHome />} />
+            <Route path="profile" element={<ProfilePage />} />
+            <Route path="elections" element={<ElectionsPage />} />
+            <Route path="elections/:id" element={<ElectionDetailsPage />} />
+            <Route path="documents" element={<DocumentsPage />} />
+            <Route path="settings" element={<SettingsPage />} />
+            <Route path="help" element={<HelpSupportPage />} />
+            <Route path="polling-map" element={<PollingMapPage />} />
+          </Route>
 
-        {/* Admin routes with shared layout */}
-        <Route path="/admin" element={<AdminDashboard />}>
-          <Route index element={<AdminHome />} />
-          <Route path="register-user" element={<RegisterUserPage />} />
-          <Route path="voters" element={<VoterManagement />} />
-          <Route path="elections" element={<ElectionManagement />} />
-        </Route>
+          {/* Admin routes - simplified for voter registration only */}
+          <Route path="/admin" element={<AdminDashboard />}>
+            <Route index element={<AdminHome />} />
+            <Route path="register-user" element={<RegisterUserPage />} />
+            <Route path="voters" element={<VoterManagement />} />
+          </Route>
 
-        {/* 404 page */}
-        <Route path="*" element={<NotFoundPage />} />
-      </Routes>
+          {/* 404 page */}
+          <Route path="*" element={<NotFoundPage />} />
+        </Routes>
+      </VoterProvider>
   )
 }
 

@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState } from "react"
+import React, { useState, useEffect } from "react"
 import { Link } from "react-router-dom"
 import {
   ArrowUpDown,
@@ -8,6 +8,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Download,
+  Edit,
   Filter,
   MoreHorizontal,
   Plus,
@@ -16,6 +17,7 @@ import {
   User,
   X,
 } from "lucide-react"
+import { useVoters } from "../../context/VoterContext"
 
 // Simple utility function for combining class names without dependencies
 const cn = (...classes) => {
@@ -50,6 +52,11 @@ const CardContent = React.forwardRef(({ className, ...props }, ref) => (
   <div ref={ref} className={cn("p-6 pt-0", className)} {...props} />
 ))
 CardContent.displayName = "CardContent"
+
+const CardFooter = React.forwardRef(({ className, ...props }, ref) => (
+  <div ref={ref} className={cn("flex items-center p-6 pt-0", className)} {...props} />
+))
+CardFooter.displayName = "CardFooter"
 
 // Button component
 const Button = React.forwardRef(
@@ -110,7 +117,35 @@ const Badge = React.forwardRef(({ className, variant, ...props }, ref) => {
 })
 Badge.displayName = "Badge"
 
+// Add Avatar component after Badge component
+const Avatar = React.forwardRef(({ className, src, alt, fallback, ...props }, ref) => {
+  const [error, setError] = useState(false)
+
+  return (
+    <div
+      ref={ref}
+      className={cn("relative flex h-10 w-10 shrink-0 overflow-hidden rounded-full", className)}
+      {...props}
+    >
+      {!error && src ? (
+        <img
+          className="aspect-square h-full w-full object-cover"
+          src={src || "/placeholder.svg"}
+          alt={alt}
+          onError={() => setError(true)}
+        />
+      ) : (
+        <div className="flex h-full w-full items-center justify-center rounded-full bg-gray-200 text-gray-600">
+          {fallback || alt?.charAt(0)?.toUpperCase() || "U"}
+        </div>
+      )}
+    </div>
+  )
+})
+Avatar.displayName = "Avatar"
+
 export default function VoterManagement() {
+  const { voters, deleteVoter, changeVoterStatus } = useVoters()
   const [searchQuery, setSearchQuery] = useState("")
   const [filterStatus, setFilterStatus] = useState("all")
   const [currentPage, setCurrentPage] = useState(1)
@@ -119,138 +154,54 @@ export default function VoterManagement() {
   const [voterToDelete, setVoterToDelete] = useState(null)
   const [showVoterDetails, setShowVoterDetails] = useState(false)
   const [selectedVoterDetails, setSelectedVoterDetails] = useState(null)
-
-  // Mock voter data
-  const voters = [
-    {
-      id: "V123456",
-      name: "Rahul Sharma",
-      aadhaar: "1234 5678 9012",
-      dob: "1985-06-15",
-      gender: "Male",
-      address: "123 MG Road, Bangalore, Karnataka 560001",
-      phone: "9876543210",
-      email: "rahul.sharma@example.com",
-      constituency: "Bangalore Central",
-      pollingStation: "St. Joseph's College",
-      registrationDate: "2023-04-15",
-      status: "Verified",
-    },
-    {
-      id: "V123457",
-      name: "Priya Patel",
-      aadhaar: "2345 6789 0123",
-      dob: "1990-03-22",
-      gender: "Female",
-      address: "456 Brigade Road, Bangalore, Karnataka 560001",
-      phone: "8765432109",
-      email: "priya.patel@example.com",
-      constituency: "Bangalore South",
-      pollingStation: "National College",
-      registrationDate: "2023-04-15",
-      status: "Pending",
-    },
-    {
-      id: "V123458",
-      name: "Amit Kumar",
-      aadhaar: "3456 7890 1234",
-      dob: "1982-11-10",
-      gender: "Male",
-      address: "789 Residency Road, Bangalore, Karnataka 560025",
-      phone: "7654321098",
-      email: "amit.kumar@example.com",
-      constituency: "Bangalore North",
-      pollingStation: "Hebbal School",
-      registrationDate: "2023-04-14",
-      status: "Verified",
-    },
-    {
-      id: "V123459",
-      name: "Sneha Gupta",
-      aadhaar: "4567 8901 2345",
-      dob: "1995-08-05",
-      gender: "Female",
-      address: "101 Indiranagar, Bangalore, Karnataka 560038",
-      phone: "6543210987",
-      email: "sneha.gupta@example.com",
-      constituency: "Bangalore East",
-      pollingStation: "Indiranagar School",
-      registrationDate: "2023-04-14",
-      status: "Rejected",
-    },
-    {
-      id: "V123460",
-      name: "Vikram Singh",
-      aadhaar: "5678 9012 3456",
-      dob: "1978-02-28",
-      gender: "Male",
-      address: "202 Koramangala, Bangalore, Karnataka 560034",
-      phone: "5432109876",
-      email: "vikram.singh@example.com",
-      constituency: "Bangalore South",
-      pollingStation: "BTM Layout Community Hall",
-      registrationDate: "2023-04-13",
-      status: "Verified",
-    },
-    {
-      id: "V123461",
-      name: "Neha Reddy",
-      aadhaar: "6789 0123 4567",
-      dob: "1992-12-18",
-      gender: "Female",
-      address: "303 JP Nagar, Bangalore, Karnataka 560078",
-      phone: "4321098765",
-      email: "neha.reddy@example.com",
-      constituency: "Bangalore South",
-      pollingStation: "National College",
-      registrationDate: "2023-04-13",
-      status: "Pending",
-    },
-    {
-      id: "V123462",
-      name: "Rajesh Verma",
-      aadhaar: "7890 1234 5678",
-      dob: "1975-05-20",
-      gender: "Male",
-      address: "404 Whitefield, Bangalore, Karnataka 560066",
-      phone: "3210987654",
-      email: "rajesh.verma@example.com",
-      constituency: "Bangalore East",
-      pollingStation: "Whitefield Community Center",
-      registrationDate: "2023-04-12",
-      status: "Verified",
-    },
-    {
-      id: "V123463",
-      name: "Ananya Desai",
-      aadhaar: "8901 2345 6789",
-      dob: "1988-09-30",
-      gender: "Female",
-      address: "505 HSR Layout, Bangalore, Karnataka 560102",
-      phone: "2109876543",
-      email: "ananya.desai@example.com",
-      constituency: "Bangalore South",
-      pollingStation: "HSR BDA Complex",
-      registrationDate: "2023-04-12",
-      status: "Verified",
-    },
-  ]
+  const [sortField, setSortField] = useState("registrationDate")
+  const [sortDirection, setSortDirection] = useState("desc")
+  const [viewMode, setViewMode] = useState("table") // "table" or "card"
 
   // Filter voters based on search query and status
   const filteredVoters = voters.filter((voter) => {
     const matchesSearch =
-      voter.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      voter.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      voter.aadhaar.replace(/\s/g, "").includes(searchQuery.replace(/\s/g, ""))
+      voter.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      voter.id?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (voter.aadhaar && voter.aadhaar.replace(/\s/g, "").includes(searchQuery.replace(/\s/g, "")))
 
     if (filterStatus === "all") return matchesSearch
-    return matchesSearch && voter.status.toLowerCase() === filterStatus.toLowerCase()
+    return matchesSearch && voter.status?.toLowerCase() === filterStatus.toLowerCase()
+  })
+
+  // Sort voters
+  const sortedVoters = [...filteredVoters].sort((a, b) => {
+    if (sortField === "registrationDate") {
+      const dateA = new Date(a.registrationDate)
+      const dateB = new Date(b.registrationDate)
+      return sortDirection === "asc" ? dateA - dateB : dateB - dateA
+    } else if (sortField === "name") {
+      return sortDirection === "asc" ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name)
+    } else if (sortField === "id") {
+      return sortDirection === "asc" ? a.id.localeCompare(b.id) : b.id.localeCompare(a.id)
+    }
+    return 0
   })
 
   // Pagination
-  const itemsPerPage = 5
-  const totalPages = Math.ceil(filteredVoters.length / itemsPerPage)
-  const paginatedVoters = filteredVoters.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+  const itemsPerPage = viewMode === "table" ? 5 : 6
+  const totalPages = Math.ceil(sortedVoters.length / itemsPerPage)
+  const paginatedVoters = sortedVoters.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+
+  // Reset page when filter changes
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [filterStatus, searchQuery])
+
+  // Handle sort
+  const handleSort = (field) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc")
+    } else {
+      setSortField(field)
+      setSortDirection("asc")
+    }
+  }
 
   // Handle select all
   const handleSelectAll = (e) => {
@@ -278,16 +229,80 @@ export default function VoterManagement() {
 
   // Handle delete voter
   const handleDeleteVoter = () => {
-    // In a real app, you would delete the voter from the database
-    console.log(`Deleting voter: ${voterToDelete.id}`)
-    setShowDeleteConfirm(false)
-    setVoterToDelete(null)
+    if (voterToDelete) {
+      deleteVoter(voterToDelete.id)
+      setShowDeleteConfirm(false)
+      setVoterToDelete(null)
+    }
   }
 
   // Handle view voter details
   const viewVoterDetails = (voter) => {
     setSelectedVoterDetails(voter)
     setShowVoterDetails(true)
+  }
+
+  // Handle verify voter
+  const handleVerifyVoter = (id) => {
+    changeVoterStatus(id, "Verified")
+    if (selectedVoterDetails && selectedVoterDetails.id === id) {
+      setSelectedVoterDetails({ ...selectedVoterDetails, status: "Verified" })
+    }
+  }
+
+  // Handle reject voter
+  const handleRejectVoter = (id) => {
+    changeVoterStatus(id, "Rejected")
+    if (selectedVoterDetails && selectedVoterDetails.id === id) {
+      setSelectedVoterDetails({ ...selectedVoterDetails, status: "Rejected" })
+    }
+  }
+
+  // Export voters data
+  const exportVotersData = () => {
+    const dataToExport = filteredVoters.map((voter) => ({
+      ID: voter.id,
+      Name: voter.name,
+      Aadhaar: voter.aadhaar,
+      DOB: voter.dob,
+      Gender: voter.gender,
+      Address: voter.address,
+      Phone: voter.phone,
+      Email: voter.email || "N/A",
+      Constituency: voter.constituency,
+      "Polling Station": voter.pollingStation,
+      "Registration Date": voter.registrationDate,
+      Status: voter.status,
+    }))
+
+    const csvContent =
+      "data:text/csv;charset=utf-8," +
+      Object.keys(dataToExport[0]).join(",") +
+      "\n" +
+      dataToExport
+        .map((row) => {
+          return Object.values(row)
+            .map((value) => {
+              // Wrap values with commas in quotes
+              return typeof value === "string" && value.includes(",") ? `"${value}"` : value
+            })
+            .join(",")
+        })
+        .join("\n")
+
+    const encodedUri = encodeURI(csvContent)
+    const link = document.createElement("a")
+    link.setAttribute("href", encodedUri)
+    link.setAttribute("download", `voters_data_${new Date().toISOString().split("T")[0]}.csv`)
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
+
+  // Toggle view mode between table and card
+  const toggleViewMode = () => {
+    setViewMode(viewMode === "table" ? "card" : "table")
+    setCurrentPage(1) // Reset to first page when changing view
   }
 
   return (
@@ -326,7 +341,10 @@ export default function VoterManagement() {
               </div>
             </div>
             <div className="flex space-x-2">
-              <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" onClick={toggleViewMode}>
+                {viewMode === "table" ? "Card View" : "Table View"}
+              </Button>
+              <Button variant="outline" size="sm" onClick={exportVotersData}>
                 <Download className="mr-2 h-4 w-4" />
                 Export
               </Button>
@@ -340,72 +358,160 @@ export default function VoterManagement() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse">
-              <thead>
-                <tr className="border-b text-left text-sm font-medium text-gray-500">
-                  <th className="px-4 py-3 pl-0">
-                    <div className="flex items-center">
-                      <input
-                        type="checkbox"
-                        className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                        onChange={handleSelectAll}
-                        checked={selectedVoters.length === paginatedVoters.length && paginatedVoters.length > 0}
-                      />
-                    </div>
-                  </th>
-                  <th className="px-4 py-3">
-                    <div className="flex items-center">
-                      <span>Voter ID</span>
-                      <ArrowUpDown className="ml-1 h-4 w-4" />
-                    </div>
-                  </th>
-                  <th className="px-4 py-3">
-                    <div className="flex items-center">
-                      <span>Name</span>
-                      <ArrowUpDown className="ml-1 h-4 w-4" />
-                    </div>
-                  </th>
-                  <th className="px-4 py-3">
-                    <div className="flex items-center">
-                      <span>Constituency</span>
-                      <ArrowUpDown className="ml-1 h-4 w-4" />
-                    </div>
-                  </th>
-                  <th className="px-4 py-3">
-                    <div className="flex items-center">
-                      <span>Registration Date</span>
-                      <ArrowUpDown className="ml-1 h-4 w-4" />
-                    </div>
-                  </th>
-                  <th className="px-4 py-3">
-                    <div className="flex items-center">
-                      <span>Status</span>
-                      <ArrowUpDown className="ml-1 h-4 w-4" />
-                    </div>
-                  </th>
-                  <th className="px-4 py-3 pr-0 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {paginatedVoters.length > 0 ? (
-                  paginatedVoters.map((voter) => (
-                    <tr key={voter.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-3 pl-0">
-                        <div className="flex items-center">
-                          <input
-                            type="checkbox"
-                            className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                            checked={selectedVoters.includes(voter.id)}
-                            onChange={() => handleSelectVoter(voter.id)}
-                          />
+          {/* Table View */}
+          {viewMode === "table" && (
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr className="border-b text-left text-sm font-medium text-gray-500">
+                    <th className="px-4 py-3 pl-0">
+                      <div className="flex items-center">
+                        <input
+                          type="checkbox"
+                          className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                          onChange={handleSelectAll}
+                          checked={selectedVoters.length === paginatedVoters.length && paginatedVoters.length > 0}
+                        />
+                      </div>
+                    </th>
+                    <th className="px-4 py-3">
+                      <div className="flex items-center">
+                        <span>Photo</span>
+                      </div>
+                    </th>
+                    <th className="px-4 py-3">
+                      <div className="flex items-center cursor-pointer" onClick={() => handleSort("id")}>
+                        <span>Voter ID</span>
+                        <ArrowUpDown className={`ml-1 h-4 w-4 ${sortField === "id" ? "text-blue-600" : ""}`} />
+                      </div>
+                    </th>
+                    <th className="px-4 py-3">
+                      <div className="flex items-center cursor-pointer" onClick={() => handleSort("name")}>
+                        <span>Name</span>
+                        <ArrowUpDown className={`ml-1 h-4 w-4 ${sortField === "name" ? "text-blue-600" : ""}`} />
+                      </div>
+                    </th>
+                    <th className="px-4 py-3">
+                      <div className="flex items-center">
+                        <span>Constituency</span>
+                      </div>
+                    </th>
+                    <th className="px-4 py-3">
+                      <div className="flex items-center cursor-pointer" onClick={() => handleSort("registrationDate")}>
+                        <span>Registration Date</span>
+                        <ArrowUpDown
+                          className={`ml-1 h-4 w-4 ${sortField === "registrationDate" ? "text-blue-600" : ""}`}
+                        />
+                      </div>
+                    </th>
+                    <th className="px-4 py-3">
+                      <div className="flex items-center">
+                        <span>Status</span>
+                      </div>
+                    </th>
+                    <th className="px-4 py-3 pr-0 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {paginatedVoters.length > 0 ? (
+                    paginatedVoters.map((voter) => (
+                      <tr key={voter.id} className="hover:bg-gray-50">
+                        <td className="px-4 py-3 pl-0">
+                          <div className="flex items-center">
+                            <input
+                              type="checkbox"
+                              className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                              checked={selectedVoters.includes(voter.id)}
+                              onChange={() => handleSelectVoter(voter.id)}
+                            />
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <Avatar src={voter.avatar} alt={voter.name} fallback={voter.name.charAt(0)} />
+                        </td>
+                        <td className="px-4 py-3 font-medium">{voter.id}</td>
+                        <td className="px-4 py-3">{voter.name}</td>
+                        <td className="px-4 py-3">{voter.constituency}</td>
+                        <td className="px-4 py-3">{voter.registrationDate}</td>
+                        <td className="px-4 py-3">
+                          <Badge
+                            variant={
+                              voter.status === "Verified"
+                                ? "success"
+                                : voter.status === "Pending"
+                                  ? "warning"
+                                  : "destructive"
+                            }
+                          >
+                            {voter.status}
+                          </Badge>
+                        </td>
+                        <td className="px-4 py-3 pr-0 text-right">
+                          <div className="flex items-center justify-end space-x-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8 p-0"
+                              onClick={() => viewVoterDetails(voter)}
+                            >
+                              <span className="sr-only">View details</span>
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8 p-0 text-red-500 hover:bg-red-50 hover:text-red-600"
+                              onClick={() => confirmDelete(voter)}
+                            >
+                              <span className="sr-only">Delete</span>
+                              <Trash className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={8} className="px-4 py-6 text-center">
+                        <div className="flex flex-col items-center">
+                          <User className="h-10 w-10 text-gray-400" />
+                          <p className="mt-2 text-gray-500">No voters registered yet</p>
+                          <p className="text-sm text-gray-400">Use the "Add Voter" button to register new voters</p>
                         </div>
                       </td>
-                      <td className="px-4 py-3 font-medium">{voter.id}</td>
-                      <td className="px-4 py-3">{voter.name}</td>
-                      <td className="px-4 py-3">{voter.constituency}</td>
-                      <td className="px-4 py-3">{voter.registrationDate}</td>
-                      <td className="px-4 py-3">
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {/* Card View */}
+          {viewMode === "card" && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {paginatedVoters.length > 0 ? (
+                paginatedVoters.map((voter) => (
+                  <div
+                    key={voter.id}
+                    className="rounded-lg border border-gray-200 bg-white overflow-hidden hover:shadow-md transition-shadow"
+                  >
+                    <div className="p-4 flex flex-col items-center">
+                      <div className="relative mb-3">
+                        {voter.avatar ? (
+                          <img
+                            src={voter.avatar || "/placeholder.svg"}
+                            alt={voter.name}
+                            className="h-32 w-32 rounded-full object-cover border-2 border-gray-200"
+                            onError={(e) => {
+                              e.target.onerror = null
+                              e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(voter.name)}&background=random&color=fff&size=128`
+                            }}
+                          />
+                        ) : (
+                          <div className="h-32 w-32 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 text-4xl font-medium border-2 border-gray-200">
+                            {voter.name.charAt(0)}
+                          </div>
+                        )}
                         <Badge
                           variant={
                             voter.status === "Verified"
@@ -414,48 +520,74 @@ export default function VoterManagement() {
                                 ? "warning"
                                 : "destructive"
                           }
+                          className="absolute bottom-0 right-0 transform translate-x-1/4"
                         >
                           {voter.status}
                         </Badge>
-                      </td>
-                      <td className="px-4 py-3 pr-0 text-right">
-                        <div className="flex items-center justify-end space-x-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-8 w-8 p-0"
-                            onClick={() => viewVoterDetails(voter)}
-                          >
-                            <span className="sr-only">View details</span>
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-8 w-8 p-0 text-red-500 hover:bg-red-50 hover:text-red-600"
-                            onClick={() => confirmDelete(voter)}
-                          >
-                            <span className="sr-only">Delete</span>
-                            <Trash className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan={7} className="px-4 py-6 text-center">
-                      <div className="flex flex-col items-center">
-                        <User className="h-10 w-10 text-gray-400" />
-                        <p className="mt-2 text-gray-500">No voters found</p>
-                        <p className="text-sm text-gray-400">Try adjusting your search or filter</p>
                       </div>
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+                      <h3 className="font-medium text-lg text-center">{voter.name}</h3>
+                      <p className="text-sm text-gray-500 text-center">{voter.id}</p>
+                      <div className="w-full mt-3 pt-3 border-t border-gray-100">
+                        <div className="grid grid-cols-2 gap-2 text-xs text-gray-500">
+                          <div>
+                            <span className="font-medium">Constituency:</span>
+                            <p className="truncate">{voter.constituency}</p>
+                          </div>
+                          <div>
+                            <span className="font-medium">Registered:</span>
+                            <p>{voter.registrationDate}</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="bg-gray-50 px-4 py-3 flex justify-between">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-blue-600 hover:text-blue-800 hover:bg-blue-50"
+                        onClick={() => viewVoterDetails(voter)}
+                      >
+                        View Details
+                      </Button>
+                      <div className="flex space-x-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0 text-green-600 hover:bg-green-50 hover:text-green-700"
+                          onClick={() => handleVerifyVoter(voter.id)}
+                          disabled={voter.status === "Verified"}
+                        >
+                          <Check className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0 text-red-500 hover:bg-red-50 hover:text-red-600"
+                          onClick={() => confirmDelete(voter)}
+                        >
+                          <Trash className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="col-span-full p-8 text-center border rounded-lg bg-gray-50">
+                  <div className="flex flex-col items-center">
+                    <User className="h-16 w-16 text-gray-300 mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900 mb-1">No voters registered yet</h3>
+                    <p className="text-gray-500 mb-4">Use the "Add Voter" button to register new voters</p>
+                    <Button asChild>
+                      <Link to="/admin/register-user">
+                        <Plus className="mr-2 h-4 w-4" />
+                        Add Voter
+                      </Link>
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Pagination */}
           {filteredVoters.length > 0 && (
@@ -474,13 +606,13 @@ export default function VoterManagement() {
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
                 <span className="text-sm">
-                  Page {currentPage} of {totalPages}
+                  Page {currentPage} of {totalPages || 1}
                 </span>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => setCurrentPage(currentPage + 1)}
-                  disabled={currentPage === totalPages}
+                  disabled={currentPage === totalPages || totalPages === 0}
                 >
                   <ChevronRight className="h-4 w-4" />
                 </Button>
@@ -529,6 +661,24 @@ export default function VoterManagement() {
             </div>
 
             <div className="grid gap-4 md:grid-cols-2">
+              <div className="col-span-2 flex justify-center mb-4">
+                {selectedVoterDetails.avatar ? (
+                  <img
+                    src={selectedVoterDetails.avatar || "/placeholder.svg"}
+                    alt={selectedVoterDetails.name}
+                    className="h-32 w-32 rounded-full object-cover border-2 border-gray-200"
+                    onError={(e) => {
+                      e.target.onerror = null
+                      e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(selectedVoterDetails.name)}&background=random&color=fff&size=128`
+                    }}
+                  />
+                ) : (
+                  <div className="h-32 w-32 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 text-4xl font-medium border-2 border-gray-200">
+                    {selectedVoterDetails.name.charAt(0)}
+                  </div>
+                )}
+              </div>
+
               <div>
                 <h4 className="mb-2 font-medium text-gray-900">Personal Information</h4>
                 <div className="space-y-2 rounded-lg border p-3">
@@ -564,7 +714,7 @@ export default function VoterManagement() {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-sm font-medium text-gray-500">Email:</span>
-                    <span className="text-sm text-gray-900">{selectedVoterDetails.email}</span>
+                    <span className="text-sm text-gray-900">{selectedVoterDetails.email || "Not provided"}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-sm font-medium text-gray-500">Address:</span>
@@ -609,17 +759,29 @@ export default function VoterManagement() {
                 <h4 className="mb-2 font-medium text-gray-900">Actions</h4>
                 <div className="space-y-2 rounded-lg border p-3">
                   <div className="grid grid-cols-2 gap-2">
-                    <Button variant="outline" size="sm" className="w-full">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full"
+                      onClick={() => handleVerifyVoter(selectedVoterDetails.id)}
+                      disabled={selectedVoterDetails.status === "Verified"}
+                    >
                       <Check className="mr-2 h-4 w-4" />
                       Verify
                     </Button>
-                    <Button variant="outline" size="sm" className="w-full">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full"
+                      onClick={() => handleRejectVoter(selectedVoterDetails.id)}
+                      disabled={selectedVoterDetails.status === "Rejected"}
+                    >
                       <X className="mr-2 h-4 w-4" />
                       Reject
                     </Button>
                     <Button variant="outline" size="sm" className="w-full">
-                      <Download className="mr-2 h-4 w-4" />
-                      Export
+                      <Edit className="mr-2 h-4 w-4" />
+                      Edit
                     </Button>
                     <Button
                       variant="destructive"

@@ -2,7 +2,19 @@
 
 import React from "react"
 import { Link } from "react-router-dom"
-import { BarChart3, Calendar, ChevronRight, Clock, FileText, MapPin, PieChart, Plus, User, Users } from "lucide-react"
+import {
+  ChevronRight,
+  Plus,
+  User,
+  Users,
+  CheckCircle,
+  AlertTriangle,
+  Clock,
+  Download,
+  FileText,
+  BarChart,
+} from "lucide-react"
+import { useVoters } from "../../context/VoterContext"
 
 // Simple utility function for combining class names without dependencies
 const cn = (...classes) => {
@@ -76,48 +88,11 @@ const Button = React.forwardRef(
 Button.displayName = "Button"
 
 export default function AdminHome() {
-  // Mock data for the dashboard
-  const stats = {
-    totalVoters: 245678,
-    newRegistrations: 1245,
-    pendingVerifications: 328,
-    upcomingElections: 3,
-    activePollingStations: 1250,
-  }
+  const { stats, getRecentRegistrations } = useVoters()
+  const recentRegistrations = getRecentRegistrations(5)
 
-  // Recent registrations
-  const recentRegistrations = [
-    { id: "V123456", name: "Rahul Sharma", date: "2023-04-15", status: "Verified" },
-    { id: "V123457", name: "Priya Patel", date: "2023-04-15", status: "Pending" },
-    { id: "V123458", name: "Amit Kumar", date: "2023-04-14", status: "Verified" },
-    { id: "V123459", name: "Sneha Gupta", date: "2023-04-14", status: "Rejected" },
-    { id: "V123460", name: "Vikram Singh", date: "2023-04-13", status: "Verified" },
-  ]
-
-  // Upcoming elections
-  const upcomingElections = [
-    {
-      id: "ge2025",
-      title: "General Elections 2025",
-      date: "April 15, 2025",
-      daysLeft: 28,
-      type: "National",
-    },
-    {
-      id: "mc2025",
-      title: "Municipal Corporation Elections",
-      date: "June 10, 2025",
-      daysLeft: 84,
-      type: "Local",
-    },
-    {
-      id: "pc2024",
-      title: "Panchayat Elections",
-      date: "December 5, 2024",
-      daysLeft: 260,
-      type: "Local",
-    },
-  ]
+  // Calculate verification rate
+  const verificationRate = stats.totalVoters > 0 ? Math.round((stats.verifiedVoters / stats.totalVoters) * 100) : 0
 
   return (
     <div className="p-4 md:p-6">
@@ -127,10 +102,8 @@ export default function AdminHome() {
         <div className="absolute -bottom-10 -left-10 h-40 w-40 rounded-full bg-white/10 blur-2xl"></div>
 
         <div className="relative">
-          <h1 className="text-2xl font-bold">Admin Dashboard</h1>
-          <p className="mt-2 text-blue-100">
-            Manage voter registrations, elections, and polling stations from a central location.
-          </p>
+          <h1 className="text-2xl font-bold">Voter Registration Admin</h1>
+          <p className="mt-2 text-blue-100">Register and manage voter data from a central location.</p>
 
           <div className="mt-4 flex flex-wrap gap-3">
             <Link
@@ -141,10 +114,10 @@ export default function AdminHome() {
               <ChevronRight className="ml-1 h-4 w-4" />
             </Link>
             <Link
-              to="/admin/elections"
+              to="/admin/voters"
               className="inline-flex items-center rounded-full bg-white/20 px-4 py-1 text-sm font-medium text-white backdrop-blur-sm transition-colors hover:bg-white/30"
             >
-              Manage Elections
+              Manage Voters
               <ChevronRight className="ml-1 h-4 w-4" />
             </Link>
           </div>
@@ -152,7 +125,7 @@ export default function AdminHome() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+      <div className="grid gap-4 md:grid-cols-3">
         <Card className="bg-white">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
@@ -173,6 +146,7 @@ export default function AdminHome() {
               <div>
                 <p className="text-sm font-medium text-gray-500">New Registrations</p>
                 <h3 className="text-2xl font-bold text-gray-900">{stats.newRegistrations.toLocaleString()}</h3>
+                <p className="text-xs text-gray-500 mt-1">Today</p>
               </div>
               <div className="flex h-12 w-12 items-center justify-center rounded-full bg-green-100">
                 <User className="h-6 w-6 text-green-600" />
@@ -194,65 +168,165 @@ export default function AdminHome() {
             </div>
           </CardContent>
         </Card>
+      </div>
 
+      {/* Additional Stats */}
+      <div className="grid gap-4 md:grid-cols-2 mt-6">
         <Card className="bg-white">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-500">Upcoming Elections</p>
-                <h3 className="text-2xl font-bold text-gray-900">{stats.upcomingElections.toLocaleString()}</h3>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg">Verification Status</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <div className="mr-2 flex h-8 w-8 items-center justify-center rounded-full bg-green-100">
+                    <CheckCircle className="h-4 w-4 text-green-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium">Verified</p>
+                    <p className="text-xs text-gray-500">{stats.verifiedVoters} voters</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm font-medium">
+                    {stats.totalVoters > 0 ? Math.round((stats.verifiedVoters / stats.totalVoters) * 100) : 0}%
+                  </p>
+                </div>
               </div>
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-purple-100">
-                <Calendar className="h-6 w-6 text-purple-600" />
+
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <div className="mr-2 flex h-8 w-8 items-center justify-center rounded-full bg-yellow-100">
+                    <Clock className="h-4 w-4 text-yellow-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium">Pending</p>
+                    <p className="text-xs text-gray-500">{stats.pendingVerifications} voters</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm font-medium">
+                    {stats.totalVoters > 0 ? Math.round((stats.pendingVerifications / stats.totalVoters) * 100) : 0}%
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <div className="mr-2 flex h-8 w-8 items-center justify-center rounded-full bg-red-100">
+                    <AlertTriangle className="h-4 w-4 text-red-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium">Rejected</p>
+                    <p className="text-xs text-gray-500">{stats.rejectedVoters} voters</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm font-medium">
+                    {stats.totalVoters > 0 ? Math.round((stats.rejectedVoters / stats.totalVoters) * 100) : 0}%
+                  </p>
+                </div>
+              </div>
+
+              {/* Simple bar chart visualization */}
+              <div className="mt-4">
+                <div className="flex h-4 w-full overflow-hidden rounded-full bg-gray-200">
+                  <div
+                    className="h-full bg-green-500"
+                    style={{
+                      width: `${stats.totalVoters > 0 ? (stats.verifiedVoters / stats.totalVoters) * 100 : 0}%`,
+                    }}
+                  ></div>
+                  <div
+                    className="h-full bg-yellow-500"
+                    style={{
+                      width: `${stats.totalVoters > 0 ? (stats.pendingVerifications / stats.totalVoters) * 100 : 0}%`,
+                    }}
+                  ></div>
+                  <div
+                    className="h-full bg-red-500"
+                    style={{
+                      width: `${stats.totalVoters > 0 ? (stats.rejectedVoters / stats.totalVoters) * 100 : 0}%`,
+                    }}
+                  ></div>
+                </div>
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card className="bg-white">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-500">Polling Stations</p>
-                <h3 className="text-2xl font-bold text-gray-900">{stats.activePollingStations.toLocaleString()}</h3>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg">Registration Activity</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-medium">Verification Rate</p>
+                <p className="text-sm font-medium">{verificationRate}%</p>
               </div>
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-100">
-                <MapPin className="h-6 w-6 text-red-600" />
+              <div className="h-2 w-full rounded-full bg-gray-200">
+                <div className="h-full rounded-full bg-blue-600" style={{ width: `${verificationRate}%` }}></div>
+              </div>
+
+              <div className="mt-4 rounded-lg bg-blue-50 p-4">
+                <div className="flex items-start space-x-3">
+                  <BarChart className="h-5 w-5 text-blue-600 mt-0.5" />
+                  <div>
+                    <h4 className="text-sm font-medium text-blue-800">Registration Summary</h4>
+                    <p className="mt-1 text-sm text-blue-700">
+                      {stats.totalVoters} total voters registered, with {stats.verifiedVoters} verified and{" "}
+                      {stats.pendingVerifications} pending verification.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-between mt-4">
+                <Button variant="outline" size="sm" className="flex items-center gap-1">
+                  <Download className="h-4 w-4" />
+                  Export Report
+                </Button>
+                <Button variant="outline" size="sm" className="flex items-center gap-1">
+                  <FileText className="h-4 w-4" />
+                  Generate PDF
+                </Button>
               </div>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      <div className="mt-6 grid gap-6 md:grid-cols-2">
-        {/* Recent Registrations */}
-        <Card className="bg-white">
-          <CardHeader className="pb-2">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-lg">Recent Registrations</CardTitle>
-              <Link to="/admin/voters" className="text-sm font-medium text-blue-600 hover:underline">
-                View All
-              </Link>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b text-left text-sm font-medium text-gray-500">
-                      <th className="pb-2 pl-0">Voter ID</th>
-                      <th className="pb-2">Name</th>
-                      <th className="pb-2">Date</th>
-                      <th className="pb-2 pr-0">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y">
-                    {recentRegistrations.map((registration) => (
+      {/* Recent Registrations */}
+      <Card className="mt-6 bg-white">
+        <CardHeader className="pb-2">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-lg">Recent Registrations</CardTitle>
+            <Link to="/admin/voters" className="text-sm font-medium text-blue-600 hover:underline">
+              View All
+            </Link>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b text-left text-sm font-medium text-gray-500">
+                    <th className="pb-2 pl-0">Voter ID</th>
+                    <th className="pb-2">Name</th>
+                    <th className="pb-2">Date</th>
+                    <th className="pb-2 pr-0">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {recentRegistrations.length > 0 ? (
+                    recentRegistrations.map((registration) => (
                       <tr key={registration.id} className="text-sm">
                         <td className="py-3 pl-0 font-medium">{registration.id}</td>
                         <td className="py-3">{registration.name}</td>
-                        <td className="py-3">{registration.date}</td>
+                        <td className="py-3">{registration.registrationDate}</td>
                         <td className="py-3 pr-0">
                           <span
                             className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
@@ -267,104 +341,27 @@ export default function AdminHome() {
                           </span>
                         </td>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              <Button asChild variant="outline" className="w-full">
-                <Link to="/admin/register-user">
-                  <Plus className="mr-2 h-4 w-4" />
-                  Register New Voter
-                </Link>
-              </Button>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan="4" className="py-6 text-center">
+                        <p className="text-gray-500">No registrations yet</p>
+                        <p className="text-sm text-gray-400">Register new voters to see them here</p>
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
             </div>
-          </CardContent>
-        </Card>
-
-        {/* Upcoming Elections */}
-        <Card className="bg-white">
-          <CardHeader className="pb-2">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-lg">Upcoming Elections</CardTitle>
-              <Link to="/admin/elections" className="text-sm font-medium text-blue-600 hover:underline">
-                View All
+            <Button asChild variant="outline" className="w-full">
+              <Link to="/admin/register-user">
+                <Plus className="mr-2 h-4 w-4" />
+                Register New Voter
               </Link>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {upcomingElections.map((election) => (
-                <div
-                  key={election.id}
-                  className="flex items-center justify-between rounded-lg border border-gray-200 p-3"
-                >
-                  <div className="flex items-center space-x-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100">
-                      <Calendar className="h-5 w-5 text-blue-600" />
-                    </div>
-                    <div>
-                      <h4 className="font-medium text-gray-900">{election.title}</h4>
-                      <p className="text-sm text-gray-500">
-                        {election.date} • {election.daysLeft} days left
-                      </p>
-                    </div>
-                  </div>
-                  <span
-                    className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
-                      election.type === "National" ? "bg-purple-100 text-purple-800" : "bg-blue-100 text-blue-800"
-                    }`}
-                  >
-                    {election.type}
-                  </span>
-                </div>
-              ))}
-              <Button asChild variant="outline" className="w-full">
-                <Link to="/admin/elections">
-                  <Plus className="mr-2 h-4 w-4" />
-                  Add New Election
-                </Link>
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Analytics Section */}
-      <div className="mt-6 grid gap-6 md:grid-cols-2">
-        {/* Registration Analytics */}
-        <Card className="bg-white">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-lg">Registration Analytics</CardTitle>
-            <CardDescription>Voter registration trends over time</CardDescription>
-          </CardHeader>
-          <CardContent className="flex items-center justify-center p-6">
-            <div className="flex h-64 w-full items-center justify-center rounded-lg border border-dashed border-gray-300 bg-gray-50">
-              <div className="text-center">
-                <BarChart3 className="mx-auto h-10 w-10 text-gray-400" />
-                <p className="mt-2 text-sm text-gray-500">Registration Analytics Chart</p>
-                <p className="text-xs text-gray-400">(Chart visualization would appear here)</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Demographic Distribution */}
-        <Card className="bg-white">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-lg">Demographic Distribution</CardTitle>
-            <CardDescription>Voter demographics by age and gender</CardDescription>
-          </CardHeader>
-          <CardContent className="flex items-center justify-center p-6">
-            <div className="flex h-64 w-full items-center justify-center rounded-lg border border-dashed border-gray-300 bg-gray-50">
-              <div className="text-center">
-                <PieChart className="mx-auto h-10 w-10 text-gray-400" />
-                <p className="mt-2 text-sm text-gray-500">Demographic Distribution Chart</p>
-                <p className="text-xs text-gray-400">(Chart visualization would appear here)</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Quick Actions */}
       <div className="mt-6">
@@ -384,43 +381,37 @@ export default function AdminHome() {
           </Link>
 
           <Link
-            to="/admin/elections"
+            to="/admin/voters"
             className="flex items-center space-x-3 rounded-lg border border-gray-200 bg-white p-4 transition-all hover:border-blue-200 hover:shadow-md"
           >
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-purple-100">
-              <Calendar className="h-5 w-5 text-purple-600" />
+              <Users className="h-5 w-5 text-purple-600" />
             </div>
             <div>
-              <h3 className="font-medium text-gray-900">Manage Elections</h3>
-              <p className="text-sm text-gray-500">Schedule and edit</p>
+              <h3 className="font-medium text-gray-900">Manage Voters</h3>
+              <p className="text-sm text-gray-500">View and edit</p>
             </div>
           </Link>
 
-          <Link
-            to="/admin/polling-stations"
-            className="flex items-center space-x-3 rounded-lg border border-gray-200 bg-white p-4 transition-all hover:border-blue-200 hover:shadow-md"
-          >
+          <div className="flex items-center space-x-3 rounded-lg border border-gray-200 bg-white p-4 transition-all hover:border-blue-200 hover:shadow-md">
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-green-100">
-              <MapPin className="h-5 w-5 text-green-600" />
+              <CheckCircle className="h-5 w-5 text-green-600" />
             </div>
             <div>
-              <h3 className="font-medium text-gray-900">Polling Stations</h3>
-              <p className="text-sm text-gray-500">Add and manage locations</p>
+              <h3 className="font-medium text-gray-900">Verify Voters</h3>
+              <p className="text-sm text-gray-500">Process pending</p>
             </div>
-          </Link>
+          </div>
 
-          <Link
-            to="/admin/reports"
-            className="flex items-center space-x-3 rounded-lg border border-gray-200 bg-white p-4 transition-all hover:border-blue-200 hover:shadow-md"
-          >
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-red-100">
-              <FileText className="h-5 w-5 text-red-600" />
+          <div className="flex items-center space-x-3 rounded-lg border border-gray-200 bg-white p-4 transition-all hover:border-blue-200 hover:shadow-md">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-yellow-100">
+              <Download className="h-5 w-5 text-yellow-600" />
             </div>
             <div>
-              <h3 className="font-medium text-gray-900">Generate Reports</h3>
-              <p className="text-sm text-gray-500">View and export data</p>
+              <h3 className="font-medium text-gray-900">Export Data</h3>
+              <p className="text-sm text-gray-500">Download reports</p>
             </div>
-          </Link>
+          </div>
         </div>
       </div>
     </div>

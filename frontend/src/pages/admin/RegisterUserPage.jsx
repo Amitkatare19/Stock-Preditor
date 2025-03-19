@@ -1,7 +1,9 @@
 "use client"
 
 import React, { useState, useRef } from "react"
+import { useNavigate } from "react-router-dom"
 import { AlertCircle, ArrowLeft, Check, Save, Upload, User, X, Search, Camera } from "lucide-react"
+import { useVoters } from "../../context/VoterContext"
 
 // Simple utility function for combining class names without dependencies
 const cn = (...classes) => {
@@ -174,6 +176,9 @@ const TabsContent = React.forwardRef(({ className, active, ...props }, ref) => (
 TabsContent.displayName = "TabsContent"
 
 export default function RegisterUserPage() {
+  const navigate = useNavigate()
+  const { addVoter } = useVoters()
+
   const [formData, setFormData] = useState({
     aadhaarNumber: "",
     name: "",
@@ -198,6 +203,9 @@ export default function RegisterUserPage() {
   const fileInputRef = useRef(null)
   const webcamRef = useRef(null)
   const [showCamera, setShowCamera] = useState(false)
+  // Add a success state to track when a voter is successfully registered
+  const [registrationSuccess, setRegistrationSuccess] = useState(false)
+  const [registeredVoter, setRegisteredVoter] = useState(null)
 
   // Mock constituencies and polling stations
   const constituencies = [
@@ -402,7 +410,28 @@ export default function RegisterUserPage() {
     if (validateForm()) {
       setIsSubmitting(true)
 
-      // Simulate API call to register user
+      // Create a new voter object
+      const newVoter = {
+        name: formData.name,
+        aadhaar: formData.aadhaarNumber,
+        dob: formData.dob,
+        gender: formData.gender,
+        address: formData.address,
+        phone: formData.phone,
+        email: formData.email || "",
+        voterID: formData.voterID,
+        constituency: formData.constituency,
+        pollingStation: formData.pollingStation,
+        // Save the photo preview as the avatar
+        avatar:
+          photoPreview ||
+          `https://ui-avatars.com/api/?name=${encodeURIComponent(formData.name)}&background=random&color=fff&size=128`,
+      }
+
+      // Add the voter to the context
+      const registeredVoter = addVoter(newVoter)
+      setRegisteredVoter(registeredVoter)
+
       setTimeout(() => {
         setIsSubmitting(false)
         setShowSuccess(true)
@@ -424,6 +453,9 @@ export default function RegisterUserPage() {
           })
           setPhotoPreview(null)
           setActiveTab("details")
+
+          // Navigate to voter management page
+          navigate("/admin/voters")
         }, 3000)
       }, 1500)
     }
@@ -459,6 +491,23 @@ export default function RegisterUserPage() {
     }
 
     return age
+  }
+
+  // Generate a random voter ID
+  const generateVoterId = () => {
+    const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    const randomLetters =
+      letters.charAt(Math.floor(Math.random() * letters.length)) +
+      letters.charAt(Math.floor(Math.random() * letters.length)) +
+      letters.charAt(Math.floor(Math.random() * letters.length))
+    const randomNumbers = Math.floor(10000000 + Math.random() * 90000000)
+
+    const voterId = randomLetters + randomNumbers
+
+    setFormData({
+      ...formData,
+      voterID: voterId,
+    })
   }
 
   return (
@@ -754,13 +803,23 @@ export default function RegisterUserPage() {
                           <div className="grid gap-6 md:grid-cols-2">
                             <div>
                               <Label htmlFor="voterID">Voter ID *</Label>
-                              <Input
-                                id="voterID"
-                                name="voterID"
-                                value={formData.voterID}
-                                onChange={handleChange}
-                                className={errors.voterID ? "border-red-300" : ""}
-                              />
+                              <div className="flex gap-2">
+                                <Input
+                                  id="voterID"
+                                  name="voterID"
+                                  value={formData.voterID}
+                                  onChange={handleChange}
+                                  className={errors.voterID ? "border-red-300" : ""}
+                                />
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  onClick={generateVoterId}
+                                  className="whitespace-nowrap"
+                                >
+                                  Generate ID
+                                </Button>
+                              </div>
                               {errors.voterID && <p className="mt-1 text-xs text-red-500">{errors.voterID}</p>}
                             </div>
 
@@ -1027,11 +1086,11 @@ export default function RegisterUserPage() {
               <Check className="h-6 w-6 text-green-600" />
             </div>
             <h3 className="text-lg font-medium text-center text-gray-900 mb-2">Registration Successful!</h3>
-            <p className="text-center text-gray-500 mb-6">Voter has been successfully registered in the system.</p>
+            <p className="text-center text-gray-500 mb-6">New voter has been registered and is pending verification.</p>
             <div className="bg-gray-50 p-4 rounded-md mb-4">
               <div className="flex justify-between mb-2">
                 <span className="text-sm font-medium text-gray-500">Voter ID:</span>
-                <span className="text-sm font-medium text-gray-900">{formData.voterID}</span>
+                <span className="text-sm font-medium text-gray-900">{registeredVoter?.id || formData.voterID}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-sm font-medium text-gray-500">Name:</span>
