@@ -173,7 +173,20 @@ export default function AadhaarVerificationPage() {
 
       // Check if the Aadhaar exists in the voter database
       const cleanAadhaar = aadhaarNumber.replace(/\s/g, "")
-      const matchingVoter = voters.find((voter) => voter.aadhaar === cleanAadhaar)
+      // Improved matching logic to handle different Aadhaar formats and property names
+      const matchingVoter = voters.find((voter) => {
+        // Check if voter has aadhaar property and it matches (after cleaning spaces)
+        if (voter.aadhaar) {
+          const voterAadhaar = voter.aadhaar.replace(/\s/g, "")
+          return voterAadhaar === cleanAadhaar
+        }
+        return false
+      })
+
+      // For debugging - log to console
+      console.log("Searching for Aadhaar:", cleanAadhaar)
+      console.log("Available voters:", voters)
+      console.log("Found matching voter:", matchingVoter)
 
       setTimeout(() => {
         setIsSubmitting(false)
@@ -242,6 +255,25 @@ export default function AadhaarVerificationPage() {
               <CardTitle className="mt-4 text-xl font-bold">Aadhaar Verification</CardTitle>
               <CardDescription>Enter your 12-digit Aadhaar number</CardDescription>
             </CardHeader>
+            <div className="px-6 pt-2">
+              <details className="mb-4 rounded-lg border border-gray-200 bg-gray-50 p-2 text-xs">
+                <summary className="cursor-pointer font-medium text-gray-700">Debug Information</summary>
+                <div className="mt-2 space-y-1 text-gray-600">
+                  <p>Total voters in database: {voters.length}</p>
+                  <p>Looking for Aadhaar: {aadhaarNumber}</p>
+                  <div>
+                    <p>Available Aadhaar numbers:</p>
+                    <ul className="ml-4 list-disc">
+                      {voters.map((voter, index) => (
+                        <li key={index}>
+                          {voter.aadhaar || "No Aadhaar"} - {voter.name}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </details>
+            </div>
 
             <CardContent className="relative px-6 pt-6">
               <div className="space-y-6">

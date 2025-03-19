@@ -13,6 +13,8 @@ import HelpSupportPage from "./pages/dashboard/HelpSupportPage"
 import ElectionDetailsPage from "./pages/dashboard/ElectionDetailsPage"
 import PollingMapPage from "./pages/dashboard/PollingMapPage"
 import NotFoundPage from "./pages/NotFoundPage"
+import VoteVerificationPage from "./pages/voting/VoteVerificationPage"
+import VotingPage from "./pages/voting/VotingPage"
 
 // Admin imports - simplified for voter registration only
 import AdminDashboard from "./pages/admin/AdminDashboard"
@@ -23,6 +25,7 @@ import { VoterProvider } from "./context/VoterContext"
 
 export default function App() {
   return (
+    <Router>
       <VoterProvider>
         <Routes>
           {/* Public routes */}
@@ -30,6 +33,10 @@ export default function App() {
           <Route path="/verify-aadhaar" element={<AadhaarVerificationPage />} />
           <Route path="/verify-otp" element={<OtpVerificationPage />} />
           <Route path="/success" element={<SuccessPage />} />
+
+          {/* Voting routes */}
+          <Route path="/voting/verify" element={<VoteVerificationPage />} />
+          <Route path="/voting/cast-vote" element={<VotingPage />} />
 
           {/* Dashboard routes with shared layout */}
           <Route path="/dashboard" element={<DashboardLayout />}>
@@ -54,6 +61,7 @@ export default function App() {
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </VoterProvider>
+    </Router>
   )
 }
 

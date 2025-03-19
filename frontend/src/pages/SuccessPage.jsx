@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useEffect } from "react"
+import React, { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { CheckCircle, ChevronRight } from "lucide-react"
 
@@ -52,6 +52,7 @@ Button.displayName = "Button"
 export default function SuccessPage() {
   const navigate = useNavigate()
   const [matchedVoter, setMatchedVoter] = React.useState(null)
+  const [countdown, setCountdown] = useState(5)
 
   useEffect(() => {
     // Check if user data exists in session storage
@@ -61,12 +62,97 @@ export default function SuccessPage() {
     if (!userData) {
       // Redirect to home if no user data
       navigate("/")
+      return
     }
 
     if (storedVoter) {
-      setMatchedVoter(JSON.parse(storedVoter))
+      const parsedVoter = JSON.parse(storedVoter)
+      setMatchedVoter(parsedVoter)
+
+      try {
+        // Update userData with complete voter information including image/avatar
+        // But optimize the avatar storage to prevent quota issues
+        const updatedUserData = {
+          name: parsedVoter.name,
+          voterID: parsedVoter.id || parsedVoter.voterID,
+          aadhaar: parsedVoter.aadhaar,
+          phone: parsedVoter.phone,
+          email: parsedVoter.email || "",
+          dob: parsedVoter.dob,
+          gender: parsedVoter.gender,
+          address: parsedVoter.address,
+          // Store avatar reference instead of the full data if it's a large string
+          avatar:
+            parsedVoter.avatar && parsedVoter.avatar.length > 1000
+              ? `https://ui-avatars.com/api/?name=${encodeURIComponent(parsedVoter.name)}&background=random&color=fff&size=128`
+              : parsedVoter.avatar,
+          constituency: parsedVoter.constituency,
+          pollingStation: parsedVoter.pollingStation,
+          status: parsedVoter.status || "Verified",
+        }
+
+        // Store the complete user data in session storage
+        sessionStorage.setItem("userData", JSON.stringify(updatedUserData))
+      } catch (error) {
+        console.error("Storage error:", error)
+
+        // If storage fails, try a minimal version without the avatar
+        if (error.name === "QuotaExceededError") {
+          const minimalUserData = {
+            name: parsedVoter.name,
+            voterID: parsedVoter.id || parsedVoter.voterID,
+            aadhaar: parsedVoter.aadhaar,
+            phone: parsedVoter.phone,
+            email: parsedVoter.email || "",
+            dob: parsedVoter.dob,
+            gender: parsedVoter.gender,
+            address: parsedVoter.address,
+            // Use a generated avatar instead
+            avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(parsedVoter.name)}&background=random&color=fff&size=128`,
+            constituency: parsedVoter.constituency,
+            pollingStation: parsedVoter.pollingStation,
+            status: parsedVoter.status || "Verified",
+          }
+
+          try {
+            sessionStorage.setItem("userData", JSON.stringify(minimalUserData))
+          } catch (secondError) {
+            console.error("Still cannot store data:", secondError)
+            // Last resort - store only essential data
+            const essentialData = {
+              name: parsedVoter.name,
+              voterID: parsedVoter.id || parsedVoter.voterID,
+              aadhaar: parsedVoter.aadhaar,
+            }
+            sessionStorage.setItem("userData", JSON.stringify(essentialData))
+          }
+        }
+      }
     }
+
+    // Set a timer to automatically redirect to dashboard after 5 seconds
+    const redirectTimer = setTimeout(() => {
+      navigate("/dashboard")
+    }, 5000)
+
+    // Clear the timer if the component unmounts
+    return () => clearTimeout(redirectTimer)
   }, [navigate])
+
+  // Add another useEffect for the countdown display
+  useEffect(() => {
+    const countdownInterval = setInterval(() => {
+      setCountdown((prevCount) => {
+        if (prevCount <= 1) {
+          clearInterval(countdownInterval)
+          return 0
+        }
+        return prevCount - 1
+      })
+    }, 1000)
+
+    return () => clearInterval(countdownInterval)
+  }, [])
 
   const goToDashboard = () => {
     navigate("/dashboard")
@@ -81,7 +167,7 @@ export default function SuccessPage() {
           </div>
           <h1 className="text-3xl font-bold tracking-tight text-gray-900">
             <span className="bg-gradient-to-r from-green-600 to-teal-600 bg-clip-text text-transparent">
-              Registration Successful!
+              Verification Successful!
             </span>
           </h1>
           <p className="mt-2 text-center text-sm text-gray-600">Your identity has been verified successfully.</p>
@@ -162,6 +248,7 @@ export default function SuccessPage() {
               Go to Dashboard
               <ChevronRight className="ml-1 h-4 w-4" />
             </Button>
+            <p className="mt-2 text-center text-xs text-gray-500">Redirecting to dashboard in {countdown} seconds...</p>
           </div>
         </div>
 

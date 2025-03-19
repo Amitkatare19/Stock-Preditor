@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useEffect } from "react"
-import { Link } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
 import { AlertCircle, Calendar, ChevronRight, Clock, FileText, MapPin, Shield, User, Settings } from "lucide-react"
 import { useVoters } from "../../context/VoterContext"
 
@@ -154,26 +154,50 @@ export default function DashboardHome() {
   const { voters } = useVoters()
   const [currentVoter, setCurrentVoter] = useState(null)
   const [noVoterFound, setNoVoterFound] = useState(false)
+  const navigate = useNavigate()
+  const [activeElection, setActiveElection] = useState(true) // Set to true if there's an active election
 
   // Get user data from session storage and find the corresponding voter
   useEffect(() => {
     const storedUserData = sessionStorage.getItem("userData")
     if (storedUserData) {
-      const parsedUserData = JSON.parse(storedUserData)
-      setUserData(parsedUserData)
+      try {
+        const parsedUserData = JSON.parse(storedUserData)
+        setUserData(parsedUserData)
 
-      // Find the voter with matching voter ID or Aadhaar
-      const matchingVoter = voters.find(
-        (voter) => voter.voterID === parsedUserData.voterID || voter.aadhaar === parsedUserData.aadhaar,
-      )
+        // Find the voter with matching voter ID or Aadhaar
+        const matchingVoter = voters.find(
+          (voter) =>
+            (voter.voterID && parsedUserData.voterID && voter.voterID === parsedUserData.voterID) ||
+            (voter.aadhaar &&
+              parsedUserData.aadhaar &&
+              voter.aadhaar.replace(/\s/g, "") === parsedUserData.aadhaar.replace(/\s/g, "")),
+        )
 
-      if (matchingVoter) {
-        setCurrentVoter(matchingVoter)
-      } else {
-        setNoVoterFound(true)
+        if (matchingVoter) {
+          // Create a complete voter object by merging matching voter with userData
+          // This ensures we have all properties even if some are missing from either source
+          const completeVoter = {
+            ...parsedUserData,
+            ...matchingVoter,
+            // Ensure we have the correct ID format
+            id: matchingVoter.id || parsedUserData.voterID,
+            voterID: matchingVoter.voterID || parsedUserData.voterID || matchingVoter.id,
+            // Use the avatar from the matching voter if available, otherwise use from userData
+            avatar: matchingVoter.avatar || parsedUserData.avatar,
+          }
+          setCurrentVoter(completeVoter)
+        } else {
+          // If no matching voter in voters array, use the userData as the voter data
+          setCurrentVoter(parsedUserData)
+        }
+      } catch (error) {
+        console.error("Error parsing user data:", error)
+        // Handle corrupted data by redirecting to login
+        navigate("/")
       }
     }
-  }, [voters])
+  }, [voters, navigate])
 
   // Quick action items
   const quickActions = [
@@ -254,6 +278,55 @@ export default function DashboardHome() {
           </div>
         </div>
       </div>
+
+      {/* Vote Now Card - NEW ADDITION */}
+      {activeElection && (
+        <Card className="mb-6 overflow-hidden border-2 border-green-500 bg-gradient-to-r from-green-50 to-blue-50">
+          <CardContent className="p-6">
+            <div className="flex flex-col md:flex-row items-center justify-between">
+              <div className="flex items-center mb-4 md:mb-0">
+                <div className="flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-full bg-green-100 mr-4">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="32"
+                    height="32"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="text-green-600"
+                  >
+                    <path d="m9 12 2 2 4-4"></path>
+                    <path d="M5 7c0-1.1.9-2 2-2h10a2 2 0 0 1 2 2v12H5V7z"></path>
+                    <path d="M22 19H2"></path>
+                  </svg>
+                </div>
+                <div>
+                  <h2 className="text-2xl font-bold text-green-800">Active Election</h2>
+                  <p className="text-green-700">Cast your vote for the General Elections 2025</p>
+                  <div className="flex items-center mt-2">
+                    <Badge variant="success" className="mr-2">
+                      Live Now
+                    </Badge>
+                    <span className="text-sm text-gray-600">Ends in 2 days</span>
+                  </div>
+                </div>
+              </div>
+              <Link to="/voting/verify" className="w-full md:w-auto">
+                <Button
+                  size="lg"
+                  className="w-full md:w-auto bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg shadow-md hover:shadow-lg transition-all"
+                >
+                  Vote Now
+                  <ChevronRight className="ml-2 h-5 w-5" />
+                </Button>
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* No Voter Record Found Message */}
       {noVoterFound && (
@@ -553,6 +626,39 @@ export default function DashboardHome() {
           </Link>
         ))}
       </div>
+
+      {/* Vote Now Quick Action - NEW ADDITION */}
+      {activeElection && (
+        <div className="mt-6">
+          <Link
+            to="/voting/verify"
+            className="group flex flex-col items-center justify-center rounded-lg border-2 border-green-500 bg-gradient-to-r from-green-50 to-blue-50 p-6 text-center transition-all hover:shadow-lg"
+          >
+            <div className="mb-3 flex h-16 w-16 items-center justify-center rounded-full bg-green-100 text-green-600 transition-transform group-hover:scale-110">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="32"
+                height="32"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="m9 12 2 2 4-4"></path>
+                <path d="M5 7c0-1.1.9-2 2-2h10a2 2 0 0 1 2 2v12H5V7z"></path>
+                <path d="M22 19H2"></path>
+              </svg>
+            </div>
+            <span className="text-xl font-bold text-green-800">Cast Your Vote Now</span>
+            <p className="mt-2 text-green-700">Participate in the General Elections 2025</p>
+            <Badge variant="success" className="mt-2">
+              Active Election
+            </Badge>
+          </Link>
+        </div>
+      )}
 
       {/* Upcoming Elections Section */}
       <div className="mt-8">

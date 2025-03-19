@@ -79,6 +79,10 @@ const Button = React.forwardRef(
     else if (size === "lg") sizeClasses = "h-11 rounded-md px-8"
     else if (size === "icon") sizeClasses = "h-10 w-10"
 
+    if (asChild) {
+      return <Comp ref={ref} {...props} />
+    }
+
     return (
       <Comp
         className={cn(

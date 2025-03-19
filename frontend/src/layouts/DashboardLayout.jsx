@@ -14,6 +14,7 @@ import {
   Settings,
   User,
   X,
+  Vote,
 } from "lucide-react"
 import { useVoters } from "../context/VoterContext"
 
@@ -93,6 +94,7 @@ export default function DashboardLayout() {
   const [showLanguageSelector, setShowLanguageSelector] = useState(false)
   const { voters } = useVoters()
   const [currentVoter, setCurrentVoter] = useState(null)
+  const [activeElection, setActiveElection] = useState(true) // Set to true if there's an active election
 
   // Get user data from session storage and find the corresponding voter
   useEffect(() => {
@@ -104,16 +106,39 @@ export default function DashboardLayout() {
       return
     }
 
-    const parsedUserData = JSON.parse(storedUserData)
-    setUserData(parsedUserData)
+    try {
+      const parsedUserData = JSON.parse(storedUserData)
+      setUserData(parsedUserData)
 
-    // Find the voter with matching voter ID or Aadhaar
-    const matchingVoter = voters.find(
-      (voter) => voter.voterID === parsedUserData.voterID || voter.aadhaar === parsedUserData.aadhaar,
-    )
+      // Find the voter with matching voter ID or Aadhaar
+      const matchingVoter = voters.find(
+        (voter) =>
+          (voter.voterID && parsedUserData.voterID && voter.voterID === parsedUserData.voterID) ||
+          (voter.aadhaar &&
+            parsedUserData.aadhaar &&
+            voter.aadhaar.replace(/\s/g, "") === parsedUserData.aadhaar.replace(/\s/g, "")),
+      )
 
-    if (matchingVoter) {
-      setCurrentVoter(matchingVoter)
+      if (matchingVoter) {
+        // Create a complete voter object by merging matching voter with userData
+        const completeVoter = {
+          ...parsedUserData,
+          ...matchingVoter,
+          // Ensure we have the correct ID format
+          id: matchingVoter.id || parsedUserData.voterID,
+          voterID: matchingVoter.voterID || parsedUserData.voterID || matchingVoter.id,
+          // Use the avatar from the matching voter if available, otherwise use from userData
+          avatar: matchingVoter.avatar || parsedUserData.avatar,
+        }
+        setCurrentVoter(completeVoter)
+      } else {
+        // If no matching voter in voters array, use the userData as the voter data
+        setCurrentVoter(parsedUserData)
+      }
+    } catch (error) {
+      console.error("Error parsing user data:", error)
+      // Handle corrupted data by redirecting to login
+      navigate("/")
     }
   }, [navigate, voters])
 
@@ -151,6 +176,17 @@ export default function DashboardLayout() {
       path: "/dashboard/profile",
       icon: User,
     },
+    // NEW ITEM: Vote Now - only shown when there's an active election
+    ...(activeElection
+      ? [
+          {
+            name: "Vote Now",
+            path: "/voting/verify",
+            icon: Vote,
+            badge: { text: "Active", variant: "success" },
+          },
+        ]
+      : []),
     {
       name: "Elections",
       path: "/dashboard/elections",
@@ -337,6 +373,15 @@ export default function DashboardLayout() {
           </div>
 
           <div className="flex items-center space-x-3">
+            {/* Vote Now Button in Header - NEW ADDITION */}
+            {activeElection && (
+              <Link to="/voting/verify">
+                <Button size="sm" className="bg-green-600 hover:bg-green-700 hidden md:flex">
+                  Vote Now
+                </Button>
+              </Link>
+            )}
+
             <div className="relative">
               <button className="flex items-center space-x-1 rounded-md p-1 text-gray-700 hover:bg-gray-100">
                 {currentVoter?.avatar ? (

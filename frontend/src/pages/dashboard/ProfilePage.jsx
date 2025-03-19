@@ -115,16 +115,45 @@ export default function ProfilePage() {
   useEffect(() => {
     const storedUserData = sessionStorage.getItem("userData")
     if (storedUserData) {
-      const parsedUserData = JSON.parse(storedUserData)
-      setUserData(parsedUserData)
+      try {
+        const parsedUserData = JSON.parse(storedUserData)
+        setUserData(parsedUserData)
 
-      // Find the voter with matching voter ID or Aadhaar
-      const matchingVoter = voters.find(
-        (voter) => voter.voterID === parsedUserData.voterID || voter.aadhaar === parsedUserData.aadhaar,
-      )
+        // Find the voter with matching voter ID or Aadhaar
+        const matchingVoter = voters.find(
+          (voter) =>
+            (voter.voterID && parsedUserData.voterID && voter.voterID === parsedUserData.voterID) ||
+            (voter.aadhaar &&
+              parsedUserData.aadhaar &&
+              voter.aadhaar.replace(/\s/g, "") === parsedUserData.aadhaar.replace(/\s/g, "")),
+        )
 
-      if (matchingVoter) {
-        setCurrentVoter(matchingVoter)
+        if (matchingVoter) {
+          // Create a complete voter object by merging matching voter with userData
+          const completeVoter = {
+            ...parsedUserData,
+            ...matchingVoter,
+            // Ensure we have the correct ID format
+            id: matchingVoter.id || parsedUserData.voterID,
+            voterID: matchingVoter.voterID || parsedUserData.voterID || matchingVoter.id,
+            // Use the avatar from the matching voter if available, otherwise use from userData
+            avatar: matchingVoter.avatar || parsedUserData.avatar,
+          }
+          setCurrentVoter(completeVoter)
+        } else {
+          // If no matching voter in voters array, use the userData as the voter data
+          setCurrentVoter(parsedUserData)
+        }
+      } catch (error) {
+        console.error("Error parsing user data:", error)
+        // Handle corrupted data gracefully
+        setUserData({
+          name: "User",
+          voterID: "Unknown",
+          aadhaar: "",
+          phone: "",
+          email: "",
+        })
       }
     }
   }, [voters])
