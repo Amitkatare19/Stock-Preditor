@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { AlertTriangle, CheckCircle2, Download, Home, QrCode, Shield } from "lucide-react"
+import { AlertTriangle, CheckCircle2, Home, Shield } from "lucide-react"
 
 // Simple utility function for combining class names without dependencies
 const cn = (...classes) => {
@@ -108,6 +108,7 @@ Button.displayName = "Button"
 export default function SuccessPage() {
   const navigate = useNavigate()
   const [aadhaarNumber, setAadhaarNumber] = useState("")
+  const [countdown, setCountdown] = useState(5)
 
   // Get data from session storage
   useEffect(() => {
@@ -120,6 +121,37 @@ export default function SuccessPage() {
     }
 
     setAadhaarNumber(storedAadhaar)
+
+    // Set up mock user data for dashboard
+    const mockUserData = {
+      name: "John Doe",
+      dob: "15/08/1985",
+      gender: "Male",
+      address: "123 Main Street, Bangalore, Karnataka",
+      phone: "******7890",
+      email: "j****@example.com",
+      aadhaar: storedAadhaar,
+      voterID: "ABC" + Math.floor(10000000 + Math.random() * 90000000),
+    }
+
+    // Store user data in session storage for dashboard
+    sessionStorage.setItem("userData", JSON.stringify(mockUserData))
+  }, [navigate])
+
+  // Set up countdown and redirect
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer)
+          navigate("/dashboard")
+          return 0
+        }
+        return prev - 1
+      })
+    }, 1000)
+
+    return () => clearInterval(timer)
   }, [navigate])
 
   // Function to handle going to home page
@@ -127,24 +159,17 @@ export default function SuccessPage() {
     navigate("/")
   }
 
-  // Function to handle QR code download
-  const downloadQR = () => {
-    // In a real app, you would generate and download the QR code
-    alert("QR Code download started...")
+  // Function to go to dashboard immediately
+  const goToDashboard = () => {
+    navigate("/dashboard")
   }
 
-  // Function to register another voter
-  const registerAnother = () => {
-    // Clear session storage
-    sessionStorage.removeItem("aadhaarNumber")
-    sessionStorage.removeItem("maskedPhone")
-
-    // Navigate to home
-    navigate("/")
-  }
+  // Calculate the percentage for the circular progress
+  const circleCircumference = 2 * Math.PI * 18 // 18 is the radius of the circle
+  const circleOffset = circleCircumference - (countdown / 5) * circleCircumference
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-50 via-white to-purple-50 px-4 py-12 sm:px-6 lg:px-8">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-blue-50 via-white to-purple-50 px-4 py-12 sm:px-6 lg:px-8">
       <div
         className="w-full max-w-md animate-fadeIn"
         style={{
@@ -168,69 +193,75 @@ export default function SuccessPage() {
             </CardDescription>
           </CardHeader>
 
+          {/* Beautiful Timer */}
+          <div className="relative mx-auto -mt-2 mb-4 flex max-w-xs items-center justify-center rounded-full bg-gradient-to-r from-blue-100 to-purple-100 p-3">
+            <div className="flex items-center space-x-3">
+              {/* Circular countdown timer */}
+              <div className="relative flex h-12 w-12 items-center justify-center">
+                <svg className="h-12 w-12 -rotate-90 transform">
+                  <circle cx="24" cy="24" r="18" stroke="rgba(59, 130, 246, 0.2)" strokeWidth="4" fill="none" />
+                  <circle
+                    cx="24"
+                    cy="24"
+                    r="18"
+                    stroke="url(#gradient)"
+                    strokeWidth="4"
+                    fill="none"
+                    strokeDasharray={circleCircumference}
+                    strokeDashoffset={circleOffset}
+                    strokeLinecap="round"
+                    className="transition-all duration-1000 ease-linear"
+                  />
+                  <defs>
+                    <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                      <stop offset="0%" stopColor="#3B82F6" />
+                      <stop offset="100%" stopColor="#8B5CF6" />
+                    </linearGradient>
+                  </defs>
+                </svg>
+                <span className="absolute text-xl font-bold text-blue-700">{countdown}</span>
+              </div>
+
+              <div className="flex flex-col">
+                <p className="text-sm font-medium text-gray-700">Redirecting to dashboard</p>
+                <p className="text-xs text-gray-500">
+                  in {countdown} second{countdown !== 1 ? "s" : ""}...
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Beautiful Timer */}
           <CardContent className="relative space-y-6 px-8 pb-8 pt-2">
-            {/* QR Code Display */}
             <div className="flex flex-col items-center justify-center space-y-4 rounded-xl bg-gradient-to-r from-blue-50 to-purple-50 p-6">
               <div className="flex h-48 w-48 items-center justify-center rounded-lg bg-white p-4 shadow-inner">
-                <QrCode className="h-32 w-32 text-gray-800" strokeWidth={1} />
+                <Shield className="h-32 w-32 text-blue-600" strokeWidth={1} />
               </div>
               <p className="text-center text-sm text-gray-600">
-                Your unique voting QR code is ready. You can download it or scan it directly.
+                Your registration is complete! Your secure voting QR code will be available in your dashboard on
+                election day.
               </p>
             </div>
 
             {/* Action Buttons */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4">
               <Button
-                onClick={goToHome}
-                variant="outline"
-                className="flex items-center justify-center space-x-2 border-gray-200 bg-white hover:bg-gray-50"
-              >
-                <Home className="h-4 w-4" />
-                <span>Go to Home</span>
-              </Button>
-              <Button
-                onClick={downloadQR}
+                onClick={goToDashboard}
                 className="flex items-center justify-center space-x-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
               >
-                <Download className="h-4 w-4" />
-                <span>Download QR</span>
+                <Home className="h-4 w-4" />
+                <span>Go to Dashboard</span>
               </Button>
-            </div>
-
-            {/* Instructions */}
-            <div className="rounded-lg border border-blue-100 bg-blue-50 p-4">
-              <div className="flex items-start space-x-3">
-                <Shield className="mt-0.5 h-5 w-5 text-blue-600" />
-                <div>
-                  <h4 className="text-sm font-medium text-blue-800">Important Instructions</h4>
-                  <ul className="mt-2 list-inside list-disc space-y-1 text-xs text-blue-700">
-                    <li>Keep your QR code safe and confidential</li>
-                    <li>You'll need this QR code to vote on election day</li>
-                    <li>Save a backup copy in a secure location</li>
-                  </ul>
-                </div>
-              </div>
             </div>
 
             {/* Security Warning */}
             <Alert className="border-yellow-100 bg-yellow-50 text-yellow-800">
               <AlertDescription className="flex items-center text-sm">
                 <AlertTriangle className="mr-2 h-4 w-4" />
-                Do not share your QR code with anyone. It contains your secure voting credentials.
+                Your QR code will be available in your dashboard on election day. Keep your login credentials secure.
               </AlertDescription>
             </Alert>
           </CardContent>
-
-          <CardFooter className="relative border-t border-gray-100 bg-gray-50 px-8 py-4">
-            <Button
-              onClick={registerAnother}
-              variant="ghost"
-              className="w-full text-gray-600 hover:bg-gray-100 hover:text-gray-800"
-            >
-              Register Another Voter
-            </Button>
-          </CardFooter>
         </Card>
       </div>
 
@@ -244,6 +275,15 @@ export default function SuccessPage() {
           to {
             opacity: 1;
             transform: translateY(0);
+          }
+        }
+        
+        @keyframes pulse {
+          0%, 100% {
+            opacity: 1;
+          }
+          50% {
+            opacity: 0.7;
           }
         }
       `}</style>
