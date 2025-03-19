@@ -10,13 +10,13 @@ import {
   ChevronRight,
   Clock,
   Fingerprint,
+  HelpCircle,
+  Lock,
   Shield,
   Smartphone,
   User,
   RefreshCw,
   Zap,
-  FileText,
-  Key,
 } from "lucide-react"
 
 // Simple utility function for combining class names without dependencies
@@ -174,11 +174,11 @@ const StepIndicator = ({ steps, currentStep }) => {
   )
 }
 
-// Enhanced face detection using canvas API with additional features
-const EnhancedFaceDetector = {
-  // Detect face using multiple techniques for better reliability
+// Simple face detection using canvas API
+const SimpleFaceDetector = {
+  // Detect face using simple color-based detection (for demo purposes)
   detectFace: (videoEl, canvasEl) => {
-    if (!videoEl || !canvasEl) return { detected: false, quality: 0, landmarks: null }
+    if (!videoEl || !canvasEl) return false
 
     try {
       const ctx = canvasEl.getContext("2d")
@@ -191,31 +191,18 @@ const EnhancedFaceDetector = {
 
       const imageData = ctx.getImageData(centerX - sampleSize / 2, centerY - sampleSize / 2, sampleSize, sampleSize)
 
-      // Enhanced algorithm to detect skin-like colors
+      // Simple algorithm to detect skin-like colors
       let skinPixels = 0
       const data = imageData.data
 
-      // Track potential eye regions for liveness detection
-      const potentialEyes = []
+      for (let i = 0; i < data.length; i += 4) {
+        const r = data[i]
+        const g = data[i + 1]
+        const b = data[i + 2]
 
-      for (let y = 0; y < sampleSize; y++) {
-        for (let x = 0; x < sampleSize; x++) {
-          const idx = (y * sampleSize + x) * 4
-          const r = data[idx]
-          const g = data[idx + 1]
-          const b = data[idx + 2]
-
-          // More sophisticated skin tone detection
-          if (r > 60 && g > 40 && b > 20 && r > g && r > b && r - g > 10 && r - b > 10) {
-            skinPixels++
-          }
-
-          // Simple eye detection (dark regions surrounded by skin)
-          if (r < 80 && g < 80 && b < 80) {
-            const realX = centerX - sampleSize / 2 + x
-            const realY = centerY - sampleSize / 2 + y
-            potentialEyes.push({ x: realX, y: realY })
-          }
+        // More lenient skin tone detection
+        if (r > 50 && g > 30 && b > 20 && r > g && r > b) {
+          skinPixels++
         }
       }
 
@@ -223,69 +210,9 @@ const EnhancedFaceDetector = {
       const totalPixels = sampleSize * sampleSize
       const skinPercentage = (skinPixels / totalPixels) * 100
 
-      // Cluster potential eye regions
-      const eyeRegions = []
-      if (potentialEyes.length > 0) {
-        // Simple clustering algorithm
-        const visited = new Set()
-
-        for (let i = 0; i < potentialEyes.length; i++) {
-          if (visited.has(i)) continue
-
-          const cluster = [potentialEyes[i]]
-          visited.add(i)
-
-          for (let j = 0; j < potentialEyes.length; j++) {
-            if (visited.has(j)) continue
-
-            const dist = Math.sqrt(
-              Math.pow(potentialEyes[i].x - potentialEyes[j].x, 2) +
-                Math.pow(potentialEyes[i].y - potentialEyes[j].y, 2),
-            )
-
-            if (dist < 20) {
-              // Close enough to be part of the same eye
-              cluster.push(potentialEyes[j])
-              visited.add(j)
-            }
-          }
-
-          if (cluster.length > 5) {
-            // Minimum size to be considered an eye
-            // Calculate center of the cluster
-            const centerX = cluster.reduce((sum, p) => sum + p.x, 0) / cluster.length
-            const centerY = cluster.reduce((sum, p) => sum + p.y, 0) / cluster.length
-            eyeRegions.push({ x: centerX, y: centerY, size: cluster.length })
-          }
-        }
-      }
-
-      // Sort eye regions by size (largest first)
-      eyeRegions.sort((a, b) => b.size - a.size)
-
-      // Take the two largest regions as eyes
-      const eyes = eyeRegions.slice(0, 2)
-
-      // Check if we have two eyes at a reasonable distance
-      let hasValidEyes = false
-      if (eyes.length === 2) {
-        const eyeDist = Math.sqrt(Math.pow(eyes[0].x - eyes[1].x, 2) + Math.pow(eyes[0].y - eyes[1].y, 2))
-
-        // Eyes should be at a reasonable distance apart
-        hasValidEyes = eyeDist > 30 && eyeDist < 150
-      }
-
-      // Calculate detection quality based on skin percentage and eye detection
-      let detectionQuality = skinPercentage * 0.7
-      if (hasValidEyes) {
-        detectionQuality += 30 // Bonus for detecting eyes
-      }
-
-      // Clamp quality between 0 and 100
-      detectionQuality = Math.min(100, Math.max(0, detectionQuality))
-
-      // Draw a face detection overlay if quality is good enough
-      if (detectionQuality > 30) {
+      // Draw a face detection overlay - more lenient threshold
+      if (skinPercentage > 5) {
+        // Lower threshold for detection
         // Draw face detection box
         const boxSize = sampleSize * 1.5
         ctx.strokeStyle = "#4f46e5"
@@ -299,32 +226,18 @@ const EnhancedFaceDetector = {
         ctx.font = "bold 14px Arial"
         ctx.fillText("Face Detected", centerX - boxSize / 2 + 10, centerY - boxSize / 2 - 8)
 
-        // Draw eye regions if detected
-        if (hasValidEyes) {
-          eyes.forEach((eye) => {
-            ctx.beginPath()
-            ctx.arc(eye.x, eye.y, 5, 0, 2 * Math.PI)
-            ctx.fillStyle = "#10b981"
-            ctx.fill()
-          })
-        }
-
-        return {
-          detected: true,
-          quality: detectionQuality,
-          landmarks: hasValidEyes ? eyes : null,
-        }
+        return true
       }
 
-      return { detected: false, quality: detectionQuality, landmarks: null }
+      return false
     } catch (error) {
-      console.error("Error in enhanced face detection:", error)
-      return { detected: false, quality: 0, landmarks: null }
+      console.error("Error in simple face detection:", error)
+      return false
     }
   },
 
-  // Draw verification overlay with enhanced features
-  drawVerificationOverlay: (canvasEl, landmarks = null) => {
+  // Draw verification overlay
+  drawVerificationOverlay: (canvasEl) => {
     if (!canvasEl) return
 
     const ctx = canvasEl.getContext("2d")
@@ -360,641 +273,32 @@ const EnhancedFaceDetector = {
     ctx.font = "bold 14px Arial"
     ctx.fillText("Verifying...", centerX - boxSize / 2 + 10, centerY - boxSize / 2 - 12)
 
-    // Draw facial landmarks (either from detection or simplified)
-    if (landmarks && landmarks.length >= 2) {
-      // Draw detected landmarks
-      landmarks.forEach((point) => {
-        ctx.beginPath()
-        ctx.arc(point.x, point.y, 5, 0, 2 * Math.PI)
-        ctx.fillStyle = "#10b981"
-        ctx.fill()
-      })
-
-      // Connect landmarks with lines
+    // Draw facial landmarks (simplified)
+    const drawLandmark = (x, y) => {
       ctx.beginPath()
-      ctx.moveTo(landmarks[0].x, landmarks[0].y)
-      ctx.lineTo(landmarks[1].x, landmarks[1].y)
-      ctx.strokeStyle = "#10b981"
-      ctx.lineWidth = 2
-      ctx.stroke()
-    } else {
-      // Draw simplified face landmarks
-      const drawLandmark = (x, y) => {
-        ctx.beginPath()
-        ctx.arc(x, y, 3, 0, 2 * Math.PI)
-        ctx.fillStyle = "#10b981"
-        ctx.fill()
-      }
-
-      // Eyes
-      drawLandmark(centerX - 30, centerY - 20)
-      drawLandmark(centerX + 30, centerY - 20)
-
-      // Nose
-      drawLandmark(centerX, centerY)
-
-      // Mouth
-      drawLandmark(centerX - 20, centerY + 30)
-      drawLandmark(centerX, centerY + 35)
-      drawLandmark(centerX + 20, centerY + 30)
-    }
-
-    // Draw biometric verification animation
-    const time = Date.now()
-    const numPoints = 8
-    const radius = boxSize / 2 + 20
-
-    for (let i = 0; i < numPoints; i++) {
-      const angle = (i / numPoints) * Math.PI * 2 + ((time % 3000) / 3000) * Math.PI * 2
-      const x = centerX + Math.cos(angle) * radius
-      const y = centerY + Math.sin(angle) * radius
-
-      ctx.beginPath()
-      ctx.arc(x, y, 3, 0, Math.PI * 2)
-      ctx.fillStyle = `rgba(16, 185, 129, ${0.3 + 0.7 * Math.sin(((time % 1000) / 1000) * Math.PI * 2 + i)})`
+      ctx.arc(x, y, 3, 0, 2 * Math.PI)
+      ctx.fillStyle = "#10b981"
       ctx.fill()
     }
+
+    // Draw simplified face landmarks
+    // Eyes
+    drawLandmark(centerX - 30, centerY - 20)
+    drawLandmark(centerX + 30, centerY - 20)
+
+    // Nose
+    drawLandmark(centerX, centerY)
+
+    // Mouth
+    drawLandmark(centerX - 20, centerY + 30)
+    drawLandmark(centerX, centerY + 35)
+    drawLandmark(centerX + 20, centerY + 30)
   },
-
-  // Perform liveness detection (blinking, head movement)
-  detectLiveness: (videoEl, canvasEl, previousLandmarks = []) => {
-    if (!videoEl || !canvasEl || !previousLandmarks.length) return false
-
-    try {
-      // Get current landmarks
-      const result = EnhancedFaceDetector.detectFace(videoEl, canvasEl)
-      if (!result.detected || !result.landmarks) return false
-
-      const currentLandmarks = result.landmarks
-
-      // Check for movement (simple version)
-      let hasMovement = false
-      if (previousLandmarks.length >= 2 && currentLandmarks.length >= 2) {
-        // Calculate movement of eyes
-        const prevLeftEye = previousLandmarks[0]
-        const prevRightEye = previousLandmarks[1]
-        const currLeftEye = currentLandmarks[0]
-        const currRightEye = currentLandmarks[1]
-
-        // Calculate distance moved
-        const leftEyeMovement = Math.sqrt(
-          Math.pow(prevLeftEye.x - currLeftEye.x, 2) + Math.pow(prevLeftEye.y - currLeftEye.y, 2),
-        )
-
-        const rightEyeMovement = Math.sqrt(
-          Math.pow(prevRightEye.x - currRightEye.x, 2) + Math.pow(prevRightEye.y - currRightEye.y, 2),
-        )
-
-        // If eyes moved more than threshold, consider it movement
-        hasMovement = leftEyeMovement > 2 || rightEyeMovement > 2
-      }
-
-      return hasMovement
-    } catch (error) {
-      console.error("Error in liveness detection:", error)
-      return false
-    }
-  },
-}
-
-// Biometric verification component
-const BiometricVerification = ({ onSuccess, onError }) => {
-  const [verificationStep, setVerificationStep] = useState(1)
-  const [progress, setProgress] = useState(0)
-  const [message, setMessage] = useState("Please follow the instructions")
-
-  useEffect(() => {
-    // Simulate biometric verification process
-    const steps = [
-      { message: "Look straight at the camera", duration: 2000 },
-      { message: "Blink slowly", duration: 2000 },
-      { message: "Turn your head slightly to the right", duration: 2000 },
-      { message: "Turn your head slightly to the left", duration: 2000 },
-      { message: "Analyzing biometric data...", duration: 3000 },
-    ]
-
-    let currentStep = 0
-    const totalDuration = steps.reduce((sum, step) => sum + step.duration, 0)
-    let elapsedTime = 0
-
-    const interval = setInterval(() => {
-      elapsedTime += 100
-
-      // Update progress
-      setProgress((elapsedTime / totalDuration) * 100)
-
-      // Check if we need to move to the next step
-      let stepTime = 0
-      for (let i = 0; i <= currentStep; i++) {
-        stepTime += steps[i].duration
-      }
-
-      if (elapsedTime >= stepTime && currentStep < steps.length - 1) {
-        currentStep++
-        setVerificationStep(currentStep + 1)
-        setMessage(steps[currentStep].message)
-      }
-
-      // Check if verification is complete
-      if (elapsedTime >= totalDuration) {
-        clearInterval(interval)
-
-        // 90% chance of success (for demo purposes)
-        if (Math.random() < 0.9) {
-          onSuccess()
-        } else {
-          onError("Biometric verification failed. Please try again.")
-        }
-      }
-    }, 100)
-
-    return () => clearInterval(interval)
-  }, [onSuccess, onError])
-
-  return (
-    <div className="space-y-4">
-      <div className="rounded-lg border border-blue-100 bg-blue-50 p-4">
-        <h4 className="text-sm font-medium text-blue-800">Biometric Verification</h4>
-        <p className="mt-1 text-xs text-blue-700">{message}</p>
-      </div>
-
-      <div className="space-y-2">
-        <div className="flex justify-between text-xs text-gray-500">
-          <span>Step {verificationStep} of 5</span>
-          <span>{Math.round(progress)}%</span>
-        </div>
-        <Progress value={progress} className="h-2" />
-      </div>
-    </div>
-  )
-}
-
-// Alternative verification component
-const AlternativeVerification = ({ onSuccess, onError }) => {
-  const [step, setStep] = useState(1)
-  const [idNumber, setIdNumber] = useState("")
-  const [dob, setDob] = useState("")
-  const [address, setAddress] = useState("")
-  const [phoneOtp, setPhoneOtp] = useState("")
-  const [emailOtp, setEmailOtp] = useState("")
-  const [isVerifying, setIsVerifying] = useState(false)
-  const [otpSent, setOtpSent] = useState(false)
-  const [otpTimer, setOtpTimer] = useState(120)
-  const [otpTimerActive, setOtpTimerActive] = useState(false)
-  const timerRef = useRef(null)
-
-  // Format timer
-  const formatTime = (seconds) => {
-    const mins = Math.floor(seconds / 60)
-    const secs = seconds % 60
-    return `${mins}:${secs < 10 ? "0" : ""}${secs}`
-  }
-
-  // OTP timer effect
-  useEffect(() => {
-    if (otpTimerActive && otpTimer > 0) {
-      timerRef.current = setTimeout(() => {
-        setOtpTimer((prev) => prev - 1)
-      }, 1000)
-    } else if (otpTimer === 0) {
-      setOtpSent(false)
-      onError("OTP has expired. Please request a new one.")
-      setOtpTimerActive(false)
-    }
-
-    return () => {
-      if (timerRef.current) clearTimeout(timerRef.current)
-    }
-  }, [otpTimerActive, otpTimer, onError])
-
-  // Verify personal information
-  const verifyPersonalInfo = (e) => {
-    e.preventDefault()
-    setIsVerifying(true)
-
-    // Simulate verification process
-    setTimeout(() => {
-      setIsVerifying(false)
-
-      // For demo purposes, accept any input with proper format
-      if (idNumber && dob && address) {
-        setStep(2)
-        sendOtps()
-      } else {
-        onError("Please fill in all required fields.")
-      }
-    }, 1500)
-  }
-
-  // Send OTPs to phone and email
-  const sendOtps = () => {
-    // Generate 6-digit OTPs
-    const phoneOtpCode = Math.floor(100000 + Math.random() * 900000).toString()
-    const emailOtpCode = Math.floor(100000 + Math.random() * 900000).toString()
-
-    setPhoneOtp(phoneOtpCode)
-    setEmailOtp(emailOtpCode)
-    setOtpSent(true)
-    setOtpTimer(120)
-    setOtpTimerActive(true)
-
-    // In a real app, these would be sent to the user's phone and email
-    console.log(`Phone OTP: ${phoneOtpCode}`)
-    console.log(`Email OTP: ${emailOtpCode}`)
-  }
-
-  // Verify OTPs
-  const verifyOtps = (e) => {
-    e.preventDefault()
-    setIsVerifying(true)
-
-    const enteredPhoneOtp = e.target.elements.phoneOtp.value
-    const enteredEmailOtp = e.target.elements.emailOtp.value
-
-    // Simulate verification process
-    setTimeout(() => {
-      setIsVerifying(false)
-
-      if (enteredPhoneOtp === phoneOtp && enteredEmailOtp === emailOtp) {
-        setOtpTimerActive(false)
-        onSuccess()
-      } else {
-        onError("Incorrect OTP(s). Please check and try again.")
-      }
-    }, 1500)
-  }
-
-  // Resend OTPs
-  const resendOtps = () => {
-    sendOtps()
-  }
-
-  return (
-    <div className="space-y-6">
-      <div className="rounded-lg border border-blue-100 bg-blue-50 p-4">
-        <div className="flex items-start space-x-3">
-          <Shield className="mt-0.5 h-5 w-5 text-blue-600" />
-          <div>
-            <h4 className="text-sm font-medium text-blue-800">Alternative Verification</h4>
-            <p className="mt-1 text-xs text-blue-700">
-              {step === 1
-                ? "Please verify your identity using your personal information."
-                : "Enter the OTPs sent to your registered phone and email."}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {step === 1 ? (
-        <form onSubmit={verifyPersonalInfo} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Voter ID / Aadhaar Number</label>
-            <input
-              type="text"
-              value={idNumber}
-              onChange={(e) => setIdNumber(e.target.value)}
-              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-              placeholder="Enter your ID number"
-              required
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Date of Birth</label>
-            <input
-              type="date"
-              value={dob}
-              onChange={(e) => setDob(e.target.value)}
-              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-              required
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Registered Address</label>
-            <textarea
-              value={address}
-              onChange={(e) => setAddress(e.target.value)}
-              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-              placeholder="Enter your registered address"
-              rows={2}
-              required
-            />
-          </div>
-
-          <Button
-            type="submit"
-            disabled={isVerifying}
-            className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700"
-          >
-            {isVerifying ? "Verifying..." : "Verify Information"}
-          </Button>
-        </form>
-      ) : (
-        <form onSubmit={verifyOtps} className="space-y-4">
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <label htmlFor="phoneOtp" className="block text-sm font-medium text-gray-700">
-                Phone OTP
-              </label>
-              <div className="flex items-center text-xs text-gray-500">
-                <Clock className="mr-1 h-3 w-3" />
-                <span>Expires in: {formatTime(otpTimer)}</span>
-              </div>
-            </div>
-            <input
-              type="text"
-              id="phoneOtp"
-              name="phoneOtp"
-              maxLength={6}
-              pattern="\\d{6}"
-              placeholder="Enter 6-digit OTP sent to your phone"
-              className="w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-              required
-            />
-            <p className="text-xs text-gray-500">For demo purposes, the phone OTP is: {phoneOtp}</p>
-          </div>
-
-          <div className="space-y-2">
-            <label htmlFor="emailOtp" className="block text-sm font-medium text-gray-700">
-              Email OTP
-            </label>
-            <input
-              type="text"
-              id="emailOtp"
-              name="emailOtp"
-              maxLength={6}
-              pattern="\\d{6}"
-              placeholder="Enter 6-digit OTP sent to your email"
-              className="w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-              required
-            />
-            <p className="text-xs text-gray-500">For demo purposes, the email OTP is: {emailOtp}</p>
-          </div>
-
-          <Button
-            type="submit"
-            disabled={isVerifying}
-            className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700"
-          >
-            {isVerifying ? "Verifying..." : "Verify OTPs"}
-          </Button>
-
-          <div className="text-center text-xs text-gray-500">
-            <p>
-              Didn't receive the OTPs?{" "}
-              <button type="button" onClick={resendOtps} className="text-blue-600 hover:text-blue-800 hover:underline">
-                Resend OTPs
-              </button>
-            </p>
-          </div>
-        </form>
-      )}
-    </div>
-  )
-}
-
-// Document verification component
-const DocumentVerification = ({ onSuccess, onError }) => {
-  const [documentType, setDocumentType] = useState("aadhaar")
-  const [documentNumber, setDocumentNumber] = useState("")
-  const [isVerifying, setIsVerifying] = useState(false)
-
-  const handleSubmit = (e) => {
-    e.preventDefault()
-    setIsVerifying(true)
-
-    // Simulate verification process
-    setTimeout(() => {
-      setIsVerifying(false)
-
-      // For demo purposes, accept any input with proper format
-      if (documentType === "aadhaar" && /^\d{12}$/.test(documentNumber.replace(/\s/g, ""))) {
-        onSuccess()
-      } else if (documentType === "pan" && /^[A-Z]{5}\d{4}[A-Z]{1}$/.test(documentNumber)) {
-        onSuccess()
-      } else if (documentType === "voter" && /^[A-Z]{3}\d{7}$/.test(documentNumber)) {
-        onSuccess()
-      } else {
-        onError("Invalid document number. Please check and try again.")
-      }
-    }, 2000)
-  }
-
-  return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="rounded-lg border border-blue-100 bg-blue-50 p-4">
-        <div className="flex items-start space-x-3">
-          <FileText className="mt-0.5 h-5 w-5 text-blue-600" />
-          <div>
-            <h4 className="text-sm font-medium text-blue-800">Document Verification</h4>
-            <p className="mt-1 text-xs text-blue-700">Please provide your document details for verification</p>
-          </div>
-        </div>
-      </div>
-
-      <div className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Document Type</label>
-          <select
-            value={documentType}
-            onChange={(e) => setDocumentType(e.target.value)}
-            className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-          >
-            <option value="aadhaar">Aadhaar Card</option>
-            <option value="pan">PAN Card</option>
-            <option value="voter">Voter ID</option>
-          </select>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Document Number</label>
-          <input
-            type="text"
-            value={documentNumber}
-            onChange={(e) => setDocumentNumber(e.target.value)}
-            placeholder={
-              documentType === "aadhaar" ? "1234 5678 9012" : documentType === "pan" ? "ABCDE1234F" : "ABC1234567"
-            }
-            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-            required
-          />
-          <p className="mt-1 text-xs text-gray-500">
-            {documentType === "aadhaar"
-              ? "Enter your 12-digit Aadhaar number"
-              : documentType === "pan"
-                ? "Enter your 10-character PAN number"
-                : "Enter your Voter ID number"}
-          </p>
-        </div>
-
-        <Button
-          type="submit"
-          disabled={isVerifying}
-          className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700"
-        >
-          {isVerifying ? "Verifying..." : "Verify Document"}
-        </Button>
-      </div>
-    </form>
-  )
-}
-
-// Digital signature component
-const DigitalSignature = ({ onSuccess, onError }) => {
-  const [signature, setSignature] = useState("")
-  const [isVerifying, setIsVerifying] = useState(false)
-
-  const handleSubmit = (e) => {
-    e.preventDefault()
-
-    if (!signature) {
-      onError("Please draw your signature")
-      return
-    }
-
-    setIsVerifying(true)
-
-    // Simulate verification process
-    setTimeout(() => {
-      setIsVerifying(false)
-      onSuccess()
-    }, 2000)
-  }
-
-  const canvasRef = useRef(null)
-  const [isDrawing, setIsDrawing] = useState(false)
-
-  useEffect(() => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-
-    const ctx = canvas.getContext("2d")
-    ctx.lineWidth = 2
-    ctx.strokeStyle = "#1e40af"
-
-    const startDrawing = (e) => {
-      setIsDrawing(true)
-      ctx.beginPath()
-      const rect = canvas.getBoundingClientRect()
-      ctx.moveTo(e.clientX - rect.left, e.clientY - rect.top)
-    }
-
-    const draw = (e) => {
-      if (!isDrawing) return
-
-      const rect = canvas.getBoundingClientRect()
-      ctx.lineTo(e.clientX - rect.left, e.clientY - rect.top)
-      ctx.stroke()
-    }
-
-    const stopDrawing = () => {
-      if (isDrawing) {
-        setIsDrawing(false)
-        setSignature(canvas.toDataURL())
-      }
-    }
-
-    canvas.addEventListener("mousedown", startDrawing)
-    canvas.addEventListener("mousemove", draw)
-    canvas.addEventListener("mouseup", stopDrawing)
-    canvas.addEventListener("mouseout", stopDrawing)
-
-    // Touch events
-    canvas.addEventListener("touchstart", (e) => {
-      e.preventDefault()
-      const touch = e.touches[0]
-      const mouseEvent = new MouseEvent("mousedown", {
-        clientX: touch.clientX,
-        clientY: touch.clientY,
-      })
-      canvas.dispatchEvent(mouseEvent)
-    })
-
-    canvas.addEventListener("touchmove", (e) => {
-      e.preventDefault()
-      const touch = e.touches[0]
-      const mouseEvent = new MouseEvent("mousemove", {
-        clientX: touch.clientX,
-        clientY: touch.clientY,
-      })
-      canvas.dispatchEvent(mouseEvent)
-    })
-
-    canvas.addEventListener("touchend", (e) => {
-      e.preventDefault()
-      const mouseEvent = new MouseEvent("mouseup", {})
-      canvas.dispatchEvent(mouseEvent)
-    })
-
-    return () => {
-      canvas.removeEventListener("mousedown", startDrawing)
-      canvas.removeEventListener("mousemove", draw)
-      canvas.removeEventListener("mouseup", stopDrawing)
-      canvas.removeEventListener("mouseout", stopDrawing)
-
-      canvas.removeEventListener("touchstart", startDrawing)
-      canvas.removeEventListener("touchmove", draw)
-      canvas.removeEventListener("touchend", stopDrawing)
-    }
-  }, [isDrawing])
-
-  const clearSignature = () => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-
-    const ctx = canvas.getContext("2d")
-    ctx.clearRect(0, 0, canvas.width, canvas.height)
-    setSignature("")
-  }
-
-  return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="rounded-lg border border-blue-100 bg-blue-50 p-4">
-        <div className="flex items-start space-x-3">
-          <Key className="mt-0.5 h-5 w-5 text-blue-600" />
-          <div>
-            <h4 className="text-sm font-medium text-blue-800">Digital Signature</h4>
-            <p className="mt-1 text-xs text-blue-700">Please draw your signature below to verify your identity</p>
-          </div>
-        </div>
-      </div>
-
-      <div className="space-y-4">
-        <div className="rounded-lg border border-gray-300 bg-white p-2">
-          <canvas
-            ref={canvasRef}
-            width={400}
-            height={150}
-            className="w-full cursor-crosshair rounded border border-gray-200 bg-gray-50"
-          />
-          <div className="mt-2 flex justify-between">
-            <p className="text-xs text-gray-500">Draw your signature above</p>
-            <button
-              type="button"
-              onClick={clearSignature}
-              className="text-xs text-blue-600 hover:text-blue-800 hover:underline"
-            >
-              Clear
-            </button>
-          </div>
-        </div>
-
-        <Button
-          type="submit"
-          disabled={isVerifying || !signature}
-          className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700"
-        >
-          {isVerifying ? "Verifying..." : "Submit Signature"}
-        </Button>
-      </div>
-    </form>
-  )
 }
 
 export default function VoteVerificationPage() {
   const navigate = useNavigate()
-  const [step, setStep] = useState(1) // 1: Mobile verification, 2: Identity verification
+  const [step, setStep] = useState(1) // 1: Number verification, 2: Facial recognition
   const [userData, setUserData] = useState(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState(null)
@@ -1009,29 +313,36 @@ export default function VoteVerificationPage() {
   const [detectionInterval, setDetectionInterval] = useState(null)
   const [modelLoadingError, setModelLoadingError] = useState(null)
   const [webGLSupported, setWebGLSupported] = useState(true)
+  const [useAlternativeVerification, setUseAlternativeVerification] = useState(false)
+  const [pinCode, setPinCode] = useState("")
+  const [pinSent, setPinSent] = useState(false)
+  const [securityQuestions, setSecurityQuestions] = useState([])
+  const [selectedQuestion, setSelectedQuestion] = useState(null)
+  const [securityAnswer, setSecurityAnswer] = useState("")
+  const [questionVerified, setQuestionVerified] = useState(false)
+  const [otpCode, setOtpCode] = useState("")
+  const [otpSent, setOtpSent] = useState(false)
+  const [otpVerified, setOtpVerified] = useState(false)
+  const [verificationStep, setVerificationStep] = useState(1) // 1: Security Question, 2: OTP
+  const [showHelp, setShowHelp] = useState(false)
   const [faceDetected, setFaceDetected] = useState(false)
   const [verificationProgress, setVerificationProgress] = useState(0)
-  const [sessionTimer, setSessionTimer] = useState(600) // 10 minutes in seconds
-  const [sessionTimerActive, setSessionTimerActive] = useState(false)
+  const [otpTimer, setOtpTimer] = useState(300) // 5 minutes in seconds
+  const [otpTimerActive, setOtpTimerActive] = useState(false)
   const [showSecurityInfo, setShowSecurityInfo] = useState(false)
-  const [faceDetectionMode, setFaceDetectionMode] = useState("enhanced") // 'enhanced' or 'advanced'
+  const [useSimpleFaceDetection, setUseSimpleFaceDetection] = useState(false)
+  const [faceDetectionMode, setFaceDetectionMode] = useState("advanced") // 'advanced' or 'simple'
   const [faceDetectionQuality, setFaceDetectionQuality] = useState(0) // 0-100
   const [showTroubleshooting, setShowTroubleshooting] = useState(false)
   const [captureCount, setCaptureCount] = useState(0)
   const [faceVerificationStage, setFaceVerificationStage] = useState(0) // 0: not started, 1: aligning, 2: capturing, 3: analyzing
-  const [livenessDetected, setLivenessDetected] = useState(false)
-  const [previousLandmarks, setPreviousLandmarks] = useState([])
-  const [livenessChecks, setLivenessChecks] = useState(0)
-  const [verificationMethod, setVerificationMethod] = useState("facial") // 'facial', 'document', 'biometric', 'signature'
-  const [secondaryVerificationComplete, setSecondaryVerificationComplete] = useState(false)
-  const [showAlternativeMethod, setShowAlternativeMethod] = useState(false)
+  const [debugMode, setDebugMode] = useState(process.env.NODE_ENV === "development")
 
   const videoRef = useRef(null)
   const canvasRef = useRef(null)
   const streamRef = useRef(null)
   const timerRef = useRef(null)
   const animationRef = useRef(null)
-  const livenessIntervalRef = useRef(null)
 
   // For debugging
   useEffect(() => {
@@ -1056,22 +367,22 @@ export default function VoteVerificationPage() {
       })
   }, [])
 
-  // Session timer effect
+  // OTP timer effect
   useEffect(() => {
-    if (sessionTimerActive && sessionTimer > 0) {
+    if (otpTimerActive && otpTimer > 0) {
       timerRef.current = setTimeout(() => {
-        setSessionTimer((prev) => prev - 1)
+        setOtpTimer((prev) => prev - 1)
       }, 1000)
-    } else if (sessionTimer === 0) {
-      // Session expired
-      setError("Your session has expired for security reasons. Please refresh the page and try again.")
-      stopCamera()
+    } else if (otpTimer === 0) {
+      setOtpSent(false)
+      setError("OTP has expired. Please request a new one.")
+      setOtpTimerActive(false)
     }
 
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current)
     }
-  }, [sessionTimerActive, sessionTimer])
+  }, [otpTimerActive, otpTimer])
 
   // Format timer
   const formatTime = (seconds) => {
@@ -1107,19 +418,16 @@ export default function VoteVerificationPage() {
       // Generate verification numbers
       generateVerificationNumbers()
 
-      // Start with enhanced face detection by default - more reliable
-      setFaceDetectionMode("enhanced")
+      // Start with simple face detection by default - more reliable
+      setFaceDetectionMode("simple")
       setModelsLoaded(true)
-
-      // Start session timer
-      setSessionTimerActive(true)
 
       // Only try to load face-api models if WebGL is supported
       if (checkWebGLSupport()) {
         loadFaceApiModels()
       } else {
-        console.log("WebGL not supported, using enhanced face detection")
-        setFaceDetectionMode("enhanced")
+        console.log("WebGL not supported, using simple face detection")
+        setUseSimpleFaceDetection(true)
       }
 
       // Clean up on unmount
@@ -1130,9 +438,6 @@ export default function VoteVerificationPage() {
         }
         if (animationRef.current) {
           cancelAnimationFrame(animationRef.current)
-        }
-        if (livenessIntervalRef.current) {
-          clearInterval(livenessIntervalRef.current)
         }
       }
     } catch (error) {
@@ -1198,8 +503,8 @@ export default function VoteVerificationPage() {
         // Check if using software renderer (SwiftShader, ANGLE, etc.)
         if (renderer.includes("SwiftShader") || renderer.includes("Software")) {
           console.warn("Using software WebGL renderer which may have limited capabilities")
-          // Software renderers often have issues with face-api.js, so we'll use enhanced detection
-          setFaceDetectionMode("enhanced")
+          // Software renderers often have issues with face-api.js, so we'll use simple detection
+          setUseSimpleFaceDetection(true)
           return true
         }
       }
@@ -1219,10 +524,19 @@ export default function VoteVerificationPage() {
 
     // First check if WebGL is supported
     if (!checkWebGLSupport()) {
-      console.log("WebGL is not supported, switching to enhanced detection")
-      setModelLoadingError("WebGL is not supported on this device. Using enhanced detection method.")
+      console.log("WebGL is not supported, switching to alternative verification")
+      setModelLoadingError("WebGL is not supported on this device. Using alternative verification method.")
       setIsModelLoading(false)
-      setFaceDetectionMode("enhanced")
+      setUseAlternativeVerification(true)
+      return
+    }
+
+    // If we're using simple face detection, skip loading the models
+    if (useSimpleFaceDetection) {
+      console.log("Using simple face detection instead of face-api.js")
+      setFaceDetectionMode("simple")
+      setModelsLoaded(true)
+      setIsModelLoading(false)
       return
     }
 
@@ -1258,8 +572,8 @@ export default function VoteVerificationPage() {
       ])
 
       if (!tinyFaceValid || !faceLandmarkValid || !faceRecognitionValid) {
-        console.log("Some model files are missing, falling back to enhanced detection")
-        setFaceDetectionMode("enhanced")
+        console.log("Some model files are missing, falling back to simple face detection")
+        setFaceDetectionMode("simple")
         setModelsLoaded(true)
         setIsModelLoading(false)
         return
@@ -1284,16 +598,16 @@ export default function VoteVerificationPage() {
         setModelsLoaded(true)
       } catch (error) {
         console.error("Error loading models:", error)
-        console.log("Falling back to enhanced detection")
-        setFaceDetectionMode("enhanced")
+        console.log("Falling back to simple face detection")
+        setFaceDetectionMode("simple")
         setModelsLoaded(true)
       }
     } catch (error) {
       console.error("Error in loadFaceApiModels:", error)
       setModelLoadingError(error.message || "Failed to load facial recognition models")
-      setError("Failed to load facial recognition models. Using enhanced detection.")
-      // Fall back to enhanced detection
-      setFaceDetectionMode("enhanced")
+      setError("Failed to load facial recognition models. Using simplified detection.")
+      // Fall back to simple face detection
+      setFaceDetectionMode("simple")
       setModelsLoaded(true)
     } finally {
       setIsModelLoading(false)
@@ -1356,9 +670,6 @@ export default function VoteVerificationPage() {
 
             // Start face detection
             startFaceDetection()
-
-            // Start liveness detection
-            startLivenessDetection()
           })
           .catch((err) => {
             console.error("Error playing video:", err)
@@ -1397,7 +708,6 @@ export default function VoteVerificationPage() {
                 setCameraPermission(true)
                 setIsLoading(false)
                 startFaceDetection()
-                startLivenessDetection()
               })
               .catch((err) => {
                 setError(`Failed to play video: ${err.message}`)
@@ -1429,15 +739,16 @@ export default function VoteVerificationPage() {
     // Use requestAnimationFrame for smoother detection
     const detectFrame = () => {
       if (videoRef.current && canvasRef.current && isCameraActive) {
-        if (faceDetectionMode === "enhanced") {
-          // Use enhanced face detection
-          const result = EnhancedFaceDetector.detectFace(videoRef.current, canvasRef.current)
-          setFaceDetected(result.detected)
-          setFaceDetectionQuality(result.quality)
+        if (faceDetectionMode === "simple") {
+          // Use simple face detection
+          const detected = SimpleFaceDetector.detectFace(videoRef.current, canvasRef.current)
+          setFaceDetected(detected)
 
-          // Store landmarks for liveness detection
-          if (result.landmarks) {
-            setPreviousLandmarks(result.landmarks)
+          // Update face detection quality (simulated)
+          if (detected) {
+            setFaceDetectionQuality((prev) => Math.min(100, prev + 2))
+          } else {
+            setFaceDetectionQuality((prev) => Math.max(0, prev - 5))
           }
         } else {
           // Use face-api.js
@@ -1448,33 +759,6 @@ export default function VoteVerificationPage() {
     }
 
     detectFrame()
-  }
-
-  // Start liveness detection
-  const startLivenessDetection = () => {
-    if (livenessIntervalRef.current) {
-      clearInterval(livenessIntervalRef.current)
-    }
-
-    // Check for liveness every 500ms
-    livenessIntervalRef.current = setInterval(() => {
-      if (videoRef.current && canvasRef.current && isCameraActive && previousLandmarks.length > 0) {
-        const isLive = EnhancedFaceDetector.detectLiveness(videoRef.current, canvasRef.current, previousLandmarks)
-
-        if (isLive) {
-          setLivenessChecks((prev) => prev + 1)
-
-          // After 5 successful liveness checks, consider it verified
-          if (livenessChecks >= 5 && !livenessDetected) {
-            setLivenessDetected(true)
-            console.log("Liveness detected!")
-
-            // Clear the interval once liveness is detected
-            clearInterval(livenessIntervalRef.current)
-          }
-        }
-      }
-    }, 500)
   }
 
   // Detect face in video using face-api.js
@@ -1558,22 +842,16 @@ export default function VoteVerificationPage() {
 
         // Update face detection quality based on detection confidence
         setFaceDetectionQuality(resizedDetections.detection._score * 100)
-
-        // Store eye landmarks for liveness detection
-        setPreviousLandmarks([
-          { x: leftEye[0]._x, y: leftEye[0]._y },
-          { x: rightEye[0]._x, y: rightEye[0]._y },
-        ])
       } else {
         setFaceDetected(false)
         setFaceDetectionQuality((prev) => Math.max(0, prev - 5))
       }
     } catch (error) {
       console.error("Error during face detection:", error)
-      // If face-api.js fails, try to fall back to enhanced detection
+      // If face-api.js fails, try to fall back to simple detection
       if (faceDetectionMode === "advanced") {
-        console.log("Falling back to enhanced face detection")
-        setFaceDetectionMode("enhanced")
+        console.log("Falling back to simple face detection")
+        setFaceDetectionMode("simple")
       }
     }
   }
@@ -1605,11 +883,6 @@ export default function VoteVerificationPage() {
       cancelAnimationFrame(animationRef.current)
       animationRef.current = null
     }
-
-    if (livenessIntervalRef.current) {
-      clearInterval(livenessIntervalRef.current)
-      livenessIntervalRef.current = null
-    }
   }
 
   // Capture and verify face
@@ -1621,11 +894,6 @@ export default function VoteVerificationPage() {
 
     if (!faceDetected) {
       setError("No face detected. Please ensure your face is clearly visible.")
-      return
-    }
-
-    if (!livenessDetected) {
-      setError("Liveness check failed. Please move your head slightly to verify you're a real person.")
       return
     }
 
@@ -1650,8 +918,8 @@ export default function VoteVerificationPage() {
             setFaceVerificationStage(3) // Analyzing
 
             // Draw verification overlay
-            if (faceDetectionMode === "enhanced") {
-              EnhancedFaceDetector.drawVerificationOverlay(canvasRef.current, previousLandmarks)
+            if (faceDetectionMode === "simple") {
+              SimpleFaceDetector.drawVerificationOverlay(canvasRef.current)
             } else {
               // Use face-api.js for advanced verification
               verifyWithFaceApi()
@@ -1665,9 +933,7 @@ export default function VoteVerificationPage() {
 
               if (progress >= 100) {
                 clearInterval(progressInterval)
-
-                // After facial verification, require secondary verification
-                setVerificationMethod("document") // Start with document verification
+                setFaceVerified(true)
                 stopCamera()
                 setIsLoading(false)
               }
@@ -1738,20 +1004,9 @@ export default function VoteVerificationPage() {
       ctx.fillText("Verifying...", box._x + 10, box._y - 12)
     } catch (error) {
       console.error("Error in face-api verification:", error)
-      // Fall back to enhanced verification
-      EnhancedFaceDetector.drawVerificationOverlay(canvasRef.current, previousLandmarks)
+      // Fall back to simple verification
+      SimpleFaceDetector.drawVerificationOverlay(canvasRef.current)
     }
-  }
-
-  // Handle secondary verification success
-  const handleSecondaryVerificationSuccess = () => {
-    setSecondaryVerificationComplete(true)
-    setFaceVerified(true)
-  }
-
-  // Handle secondary verification error
-  const handleSecondaryVerificationError = (errorMessage) => {
-    setError(errorMessage)
   }
 
   // Proceed to voting page
@@ -1761,16 +1016,22 @@ export default function VoteVerificationPage() {
     navigate("/voting/cast-vote")
   }
 
-  // Switch to alternative verification method
-  const switchToAlternativeMethod = () => {
-    stopCamera()
-    setShowAlternativeMethod(true)
-    setError(null)
+  // For testing: Skip verification (only for development)
+  const skipVerification = () => {
+    if (process.env.NODE_ENV === "development") {
+      setFaceVerified(true)
+      console.log("Verification skipped (development mode)")
+    }
+  }
+
+  // Retry loading models
+  const retryLoadModels = () => {
+    loadFaceApiModels()
   }
 
   // Switch face detection mode
   const switchFaceDetectionMode = () => {
-    const newMode = faceDetectionMode === "advanced" ? "enhanced" : "advanced"
+    const newMode = faceDetectionMode === "advanced" ? "simple" : "advanced"
     console.log(`Switching face detection mode to: ${newMode}`)
     setFaceDetectionMode(newMode)
 
@@ -1781,6 +1042,142 @@ export default function VoteVerificationPage() {
       }
       startFaceDetection()
     }
+  }
+
+  // Add a new function for alternative verification
+  const useAlternativeVerificationMethod = () => {
+    setUseAlternativeVerification(true)
+    loadSecurityQuestions()
+  }
+
+  // Generate a random 4-digit PIN
+  const generatePIN = () => {
+    const pin = Math.floor(1000 + Math.random() * 9000).toString()
+    setPinCode(pin)
+    setPinSent(true)
+    console.log(`PIN generated for verification: ${pin}`)
+    return pin
+  }
+
+  // Send PIN to user's phone (simulated)
+  const sendPIN = () => {
+    setError(null)
+    const pin = generatePIN()
+    // In a real app, this would send the PIN to the user's phone
+    // For demo purposes, we'll just show it in the console
+    console.log(`PIN sent to user's phone: ${pin}`)
+    return true
+  }
+
+  // Verify PIN
+  const verifyPIN = (event) => {
+    event.preventDefault()
+    setError(null)
+
+    const enteredPin = event.target.elements.pin.value
+
+    // In a real app, you would verify this PIN against the one sent to the user
+    // For demo purposes, we'll accept the correct PIN or any 4-digit PIN if we're in development mode
+    if (process.env.NODE_ENV === "development" && enteredPin.length === 4 && /^\d+$/.test(enteredPin)) {
+      setFaceVerified(true)
+      return
+    }
+
+    if (enteredPin === pinCode) {
+      setFaceVerified(true)
+    } else {
+      setError("Incorrect PIN. Please try again.")
+    }
+  }
+
+  // Load security questions for the user
+  const loadSecurityQuestions = () => {
+    // In a real app, these would be fetched from the user's profile
+    // For demo purposes, we'll use some sample questions
+    const questions = [
+      {
+        id: 1,
+        question: "What was the name of your first pet?",
+        answer: "fluffy", // In a real app, this would be hashed and stored securely
+      },
+      {
+        id: 2,
+        question: "In which city were you born?",
+        answer: "mumbai",
+      },
+      {
+        id: 3,
+        question: "What was the model of your first car?",
+        answer: "swift",
+      },
+      {
+        id: 4,
+        question: "What is your mother's maiden name?",
+        answer: "patel",
+      },
+      {
+        id: 5,
+        question: "What was the name of your primary school?",
+        answer: "st. mary",
+      },
+    ]
+
+    setSecurityQuestions(questions)
+
+    // Select a random question
+    const randomIndex = Math.floor(Math.random() * questions.length)
+    setSelectedQuestion(questions[randomIndex])
+  }
+
+  // Verify security question answer
+  const verifySecurityAnswer = (event) => {
+    event.preventDefault()
+    setError(null)
+
+    // In a real app, you would hash the answer and compare with the stored hash
+    // For demo purposes, we'll do a case-insensitive comparison
+    if (securityAnswer.toLowerCase() === selectedQuestion.answer.toLowerCase()) {
+      setQuestionVerified(true)
+      setVerificationStep(2)
+      // Send OTP after question is verified
+      sendOTP()
+    } else {
+      setError("Incorrect answer. Please try again.")
+    }
+  }
+
+  // Generate and send OTP
+  const sendOTP = () => {
+    // Generate a 6-digit OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString()
+    setOtpCode(otp)
+    setOtpSent(true)
+    setOtpTimer(300) // Reset timer to 5 minutes
+    setOtpTimerActive(true)
+
+    // In a real app, this would send the OTP to the user's phone or email
+    console.log(`OTP sent to user: ${otp}`)
+  }
+
+  // Verify OTP
+  const verifyOTP = (event) => {
+    event.preventDefault()
+    setError(null)
+
+    const enteredOTP = event.target.elements.otp.value
+
+    if (enteredOTP === otpCode) {
+      setOtpVerified(true)
+      setOtpTimerActive(false)
+      setFaceVerified(true) // This will show the success screen
+    } else {
+      setError("Incorrect OTP. Please try again.")
+    }
+  }
+
+  // Toggle help section
+  const toggleHelp = () => {
+    setShowHelp((prev) => !prev)
   }
 
   // Toggle security info
@@ -1830,12 +1227,6 @@ export default function VoteVerificationPage() {
           <StepIndicator steps={["Mobile Verification", "Identity Verification", "Vote"]} currentStep={step} />
         </div>
 
-        {/* Session timer */}
-        <div className="flex items-center justify-center text-xs text-gray-500">
-          <Clock className="mr-1 h-3 w-3" />
-          <span>Session expires in: {formatTime(sessionTimer)}</span>
-        </div>
-
         <div
           style={{
             opacity: 1,
@@ -1861,6 +1252,13 @@ export default function VoteVerificationPage() {
                 </div>
                 <div className="flex items-center space-x-2">
                   <span className="text-sm font-medium text-gray-500">Step {step} of 2</span>
+                  <button
+                    onClick={toggleHelp}
+                    className="rounded-full bg-gray-100 p-1 text-gray-500 hover:bg-gray-200 hover:text-gray-700"
+                    aria-label="Help"
+                  >
+                    <HelpCircle className="h-4 w-4" />
+                  </button>
                 </div>
               </div>
               <CardTitle className="mt-4 text-xl font-bold">
@@ -1875,6 +1273,31 @@ export default function VoteVerificationPage() {
 
             <CardContent className="relative px-6 pt-6">
               <div className="space-y-6">
+                {/* Help section */}
+                {showHelp && (
+                  <div className="rounded-lg border border-blue-100 bg-blue-50 p-4 text-sm">
+                    <h4 className="mb-2 font-medium text-blue-800">Verification Help</h4>
+                    {step === 1 ? (
+                      <div className="space-y-2 text-blue-700">
+                        <p>• A verification code has been sent to your registered mobile number.</p>
+                        <p>• Select the correct number from the options below.</p>
+                        <p>• If you didn't receive the code, you can request a new one.</p>
+                        <p>• This step ensures that you have access to your registered mobile device.</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-2 text-blue-700">
+                        <p>• Position your face clearly in the camera frame.</p>
+                        <p>• Ensure good lighting and remove any face coverings.</p>
+                        <p>• If facial recognition doesn't work, you can use the alternative verification method.</p>
+                        <p>• This step confirms your identity before allowing you to vote.</p>
+                      </div>
+                    )}
+                    <button onClick={toggleHelp} className="mt-2 text-blue-600 hover:text-blue-800 hover:underline">
+                      Close Help
+                    </button>
+                  </div>
+                )}
+
                 {/* Progress bar */}
                 <div className="space-y-2">
                   <div className="flex justify-between text-xs text-gray-500">
@@ -1962,6 +1385,15 @@ export default function VoteVerificationPage() {
                         </ul>
                       </div>
                     )}
+
+                    {/* For testing only - in development mode */}
+                    {process.env.NODE_ENV === "development" && (
+                      <div className="mt-4 text-center">
+                        <button onClick={() => setStep(2)} className="text-xs text-gray-400 hover:text-gray-600">
+                          [DEV] Skip to facial recognition
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -1970,284 +1402,423 @@ export default function VoteVerificationPage() {
                   <div className="space-y-4">
                     {!faceVerified ? (
                       <>
-                        {!secondaryVerificationComplete ? (
+                        <div className="rounded-lg border border-blue-100 bg-blue-50 p-4">
+                          <div className="flex items-start space-x-3">
+                            <Camera className="mt-0.5 h-5 w-5 text-blue-600" />
+                            <div>
+                              <h4 className="text-sm font-medium text-blue-800">Identity Verification</h4>
+                              <p className="mt-1 text-xs text-blue-700">
+                                {webGLSupported && !useAlternativeVerification
+                                  ? "Please allow camera access and position your face within the frame."
+                                  : "Please use the alternative verification method below."}
+                              </p>
+                              {faceDetectionMode === "simple" && (
+                                <div className="mt-1 flex items-center text-xs text-blue-600">
+                                  <Zap className="mr-1 h-3 w-3" />
+                                  <span>Using simplified face detection</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        {isModelLoading && (
+                          <div className="flex flex-col items-center justify-center py-4">
+                            <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent"></div>
+                            <p className="mt-2 text-sm text-gray-600">Loading verification system...</p>
+                          </div>
+                        )}
+
+                        {modelLoadingError && (
+                          <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-700">
+                            <h4 className="font-medium">Verification System Notice:</h4>
+                            <p className="mt-1">{modelLoadingError}</p>
+                            <div className="mt-2 flex justify-center">
+                              {webGLSupported ? (
+                                <button
+                                  onClick={retryLoadModels}
+                                  className="rounded-md bg-amber-100 px-3 py-1 text-xs font-medium text-amber-800 hover:bg-amber-200"
+                                >
+                                  Retry Loading Models
+                                </button>
+                              ) : (
+                                <button
+                                  onClick={useAlternativeVerificationMethod}
+                                  className="rounded-md bg-amber-100 px-3 py-1 text-xs font-medium text-amber-800 hover:bg-amber-200"
+                                >
+                                  Use Alternative Method
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Show camera verification only if WebGL is supported and alternative method is not selected */}
+                        {webGLSupported && !useAlternativeVerification ? (
                           <>
-                            {showAlternativeMethod ? (
-                              <AlternativeVerification
-                                onSuccess={handleSecondaryVerificationSuccess}
-                                onError={handleSecondaryVerificationError}
-                              />
-                            ) : (
-                              verificationMethod === "facial" && (
+                            <div className="relative mx-auto aspect-video w-full max-w-sm overflow-hidden rounded-lg border border-gray-200 bg-black">
+                              {isCameraActive ? (
                                 <>
-                                  <div className="rounded-lg border border-blue-100 bg-blue-50 p-4">
-                                    <div className="flex items-start space-x-3">
-                                      <Camera className="mt-0.5 h-5 w-5 text-blue-600" />
-                                      <div>
-                                        <h4 className="text-sm font-medium text-blue-800">Facial Recognition</h4>
-                                        <p className="mt-1 text-xs text-blue-700">
-                                          Please allow camera access and position your face within the frame.
-                                        </p>
-                                        {faceDetectionMode === "enhanced" && (
-                                          <div className="mt-1 flex items-center text-xs text-blue-600">
-                                            <Zap className="mr-1 h-3 w-3" />
-                                            <span>Using enhanced face detection</span>
-                                          </div>
-                                        )}
-                                      </div>
-                                    </div>
-                                  </div>
-
-                                  {isModelLoading && (
-                                    <div className="flex flex-col items-center justify-center py-4">
-                                      <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent"></div>
-                                      <p className="mt-2 text-sm text-gray-600">Loading verification system...</p>
-                                    </div>
-                                  )}
-
-                                  {modelLoadingError && (
-                                    <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-700">
-                                      <h4 className="font-medium">Verification System Notice:</h4>
-                                      <p className="mt-1">{modelLoadingError}</p>
-                                    </div>
-                                  )}
-
-                                  <div className="relative mx-auto aspect-video w-full max-w-sm overflow-hidden rounded-lg border border-gray-200 bg-black">
-                                    {isCameraActive ? (
-                                      <>
-                                        <video
-                                          ref={videoRef}
-                                          autoPlay
-                                          playsInline
-                                          muted
-                                          className="h-full w-full object-cover"
-                                          style={{ display: isCameraActive ? "block" : "none" }}
-                                          width={640}
-                                          height={480}
-                                        />
-                                        <canvas
-                                          ref={canvasRef}
-                                          className="absolute inset-0 h-full w-full object-cover"
-                                          width={640}
-                                          height={480}
-                                        />
-                                        {isLoading && (
-                                          <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/50">
-                                            <div className="flex flex-col items-center space-y-2 text-white">
-                                              <div className="h-8 w-8 animate-spin rounded-full border-4 border-white border-t-transparent"></div>
-                                              <span className="text-sm">
-                                                {faceVerificationStage === 1 && "Aligning face..."}
-                                                {faceVerificationStage === 2 && `Capturing image ${captureCount}/3...`}
-                                                {faceVerificationStage === 3 && "Analyzing..."}
-                                              </span>
-                                              {verificationProgress > 0 && faceVerificationStage === 3 && (
-                                                <div className="w-48">
-                                                  <div className="mb-1 flex justify-between text-xs">
-                                                    <span>Analyzing</span>
-                                                    <span>{verificationProgress}%</span>
-                                                  </div>
-                                                  <div className="h-2 w-full rounded-full bg-gray-700">
-                                                    <div
-                                                      className="h-full rounded-full bg-green-500 transition-all duration-300"
-                                                      style={{ width: `${verificationProgress}%` }}
-                                                    ></div>
-                                                  </div>
-                                                </div>
-                                              )}
+                                  <video
+                                    ref={videoRef}
+                                    autoPlay
+                                    playsInline
+                                    muted
+                                    className="h-full w-full object-cover"
+                                    style={{ display: isCameraActive ? "block" : "none" }}
+                                    width={640}
+                                    height={480}
+                                  />
+                                  <canvas
+                                    ref={canvasRef}
+                                    className="absolute inset-0 h-full w-full object-cover"
+                                    width={640}
+                                    height={480}
+                                  />
+                                  {isLoading && (
+                                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/50">
+                                      <div className="flex flex-col items-center space-y-2 text-white">
+                                        <div className="h-8 w-8 animate-spin rounded-full border-4 border-white border-t-transparent"></div>
+                                        <span className="text-sm">
+                                          {faceVerificationStage === 1 && "Aligning face..."}
+                                          {faceVerificationStage === 2 && `Capturing image ${captureCount}/3...`}
+                                          {faceVerificationStage === 3 && "Analyzing..."}
+                                        </span>
+                                        {verificationProgress > 0 && faceVerificationStage === 3 && (
+                                          <div className="w-48">
+                                            <div className="mb-1 flex justify-between text-xs">
+                                              <span>Analyzing</span>
+                                              <span>{verificationProgress}%</span>
+                                            </div>
+                                            <div className="h-2 w-full rounded-full bg-gray-700">
+                                              <div
+                                                className="h-full rounded-full bg-green-500 transition-all duration-300"
+                                                style={{ width: `${verificationProgress}%` }}
+                                              ></div>
                                             </div>
                                           </div>
                                         )}
-
-                                        {/* Face detection status indicator */}
-                                        <div className="absolute bottom-2 left-2 flex items-center rounded-full bg-black/70 px-2 py-1 text-xs text-white">
-                                          <div
-                                            className={`mr-1 h-2 w-2 rounded-full ${faceDetected ? "bg-green-500" : "bg-red-500"}`}
-                                          ></div>
-                                          {faceDetected ? "Face Detected" : "No Face Detected"}
-                                        </div>
-
-                                        {/* Face detection quality indicator */}
-                                        <div className="absolute bottom-2 right-2 flex items-center rounded-full bg-black/70 px-2 py-1 text-xs text-white">
-                                          <span className="mr-1">Quality:</span>
-                                          <div className="h-1.5 w-16 rounded-full bg-gray-600">
-                                            <div
-                                              className={`h-full rounded-full transition-all duration-300 ${
-                                                faceDetectionQuality > 70
-                                                  ? "bg-green-500"
-                                                  : faceDetectionQuality > 40
-                                                    ? "bg-yellow-500"
-                                                    : "bg-red-500"
-                                              }`}
-                                              style={{ width: `${faceDetectionQuality}%` }}
-                                            ></div>
-                                          </div>
-                                        </div>
-
-                                        {/* Liveness detection indicator */}
-                                        <div className="absolute top-2 right-2 flex items-center rounded-full bg-black/70 px-2 py-1 text-xs text-white">
-                                          <div
-                                            className={`mr-1 h-2 w-2 rounded-full ${livenessDetected ? "bg-green-500" : "bg-yellow-500 animate-pulse"}`}
-                                          ></div>
-                                          {livenessDetected ? "Liveness Verified" : "Checking Liveness..."}
-                                        </div>
-                                      </>
-                                    ) : (
-                                      <div className="flex h-full w-full flex-col items-center justify-center p-4 text-white">
-                                        {cameraPermission === false ? (
-                                          <div className="text-center">
-                                            <AlertCircle className="mx-auto mb-2 h-10 w-10 text-red-500" />
-                                            <p className="text-sm">
-                                              Camera access denied. Please allow camera access in your browser settings.
-                                            </p>
-                                          </div>
-                                        ) : (
-                                          <>
-                                            <Camera className="mb-2 h-10 w-10 text-gray-400" />
-                                            <p className="text-center text-sm text-gray-400">
-                                              Click the button below to start camera
-                                            </p>
-                                          </>
-                                        )}
                                       </div>
-                                    )}
-                                  </div>
-
-                                  {/* Camera instructions */}
-                                  {isCameraActive && (
-                                    <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 text-xs text-gray-600">
-                                      <h5 className="font-medium text-gray-700">For best results:</h5>
-                                      <ul className="mt-1 space-y-1">
-                                        <li>• Ensure your face is well-lit</li>
-                                        <li>• Remove glasses, masks, or other face coverings</li>
-                                        <li>• Look directly at the camera</li>
-                                        <li>• Move your head slightly to verify liveness</li>
-                                      </ul>
                                     </div>
                                   )}
 
-                                  {/* Troubleshooting section */}
-                                  {isCameraActive && (
-                                    <div className="mt-2">
-                                      <button
-                                        onClick={toggleTroubleshooting}
-                                        className="flex w-full items-center justify-between rounded-lg border border-gray-200 bg-gray-50 px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100"
-                                      >
-                                        <div className="flex items-center">
-                                          <RefreshCw className="mr-2 h-4 w-4 text-gray-500" />
-                                          <span>Troubleshooting Options</span>
-                                        </div>
-                                        <ChevronRight
-                                          className={`h-4 w-4 text-gray-500 transition-transform ${showTroubleshooting ? "rotate-90" : ""}`}
-                                        />
-                                      </button>
+                                  {/* Face detection status indicator */}
+                                  <div className="absolute bottom-2 left-2 flex items-center rounded-full bg-black/70 px-2 py-1 text-xs text-white">
+                                    <div
+                                      className={`mr-1 h-2 w-2 rounded-full ${faceDetected ? "bg-green-500" : "bg-red-500"}`}
+                                    ></div>
+                                    {faceDetected ? "Face Detected" : "No Face Detected"}
+                                  </div>
 
-                                      {showTroubleshooting && (
-                                        <div className="mt-2 rounded-lg border border-gray-200 bg-gray-50 p-3">
-                                          <p className="mb-2 text-xs text-gray-600">
-                                            If you're having trouble with face detection:
-                                          </p>
-                                          <div className="flex flex-wrap gap-2">
-                                            <button
-                                              onClick={switchFaceDetectionMode}
-                                              className="rounded-md bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700 hover:bg-blue-100"
-                                            >
-                                              Switch to {faceDetectionMode === "advanced" ? "Enhanced" : "Advanced"}{" "}
-                                              Mode
-                                            </button>
-                                            <button
-                                              onClick={() => {
-                                                stopCamera()
-                                                setTimeout(() => startCamera(), 500)
-                                              }}
-                                              className="rounded-md bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700 hover:bg-blue-100"
-                                            >
-                                              Restart Camera
-                                            </button>
-                                          </div>
-                                        </div>
-                                      )}
+                                  {/* Face detection quality indicator */}
+                                  <div className="absolute bottom-2 right-2 flex items-center rounded-full bg-black/70 px-2 py-1 text-xs text-white">
+                                    <span className="mr-1">Quality:</span>
+                                    <div className="h-1.5 w-16 rounded-full bg-gray-600">
+                                      <div
+                                        className={`h-full rounded-full transition-all duration-300 ${
+                                          faceDetectionQuality > 70
+                                            ? "bg-green-500"
+                                            : faceDetectionQuality > 40
+                                              ? "bg-yellow-500"
+                                              : "bg-red-500"
+                                        }`}
+                                        style={{ width: `${faceDetectionQuality}%` }}
+                                      ></div>
+                                    </div>
+                                  </div>
+                                  {/* Camera status indicator */}
+                                  {isCameraActive && (
+                                    <div className="absolute top-2 right-2 flex items-center rounded-full bg-black/70 px-2 py-1 text-xs text-white">
+                                      <div className="mr-1 h-2 w-2 rounded-full bg-green-500 animate-pulse"></div>
+                                      Camera Active
                                     </div>
                                   )}
-
-                                  <div className="flex justify-center space-x-4">
-                                    {!isCameraActive ? (
-                                      <Button
-                                        onClick={startCamera}
-                                        disabled={isLoading || cameraPermission === false || isModelLoading}
-                                        className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700"
-                                      >
-                                        {isModelLoading ? "Loading Models..." : "Start Camera"}
-                                      </Button>
-                                    ) : (
-                                      <>
-                                        <Button
-                                          onClick={stopCamera}
-                                          variant="outline"
-                                          disabled={isLoading}
-                                          className="border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
-                                        >
-                                          Cancel
-                                        </Button>
-                                        <Button
-                                          onClick={captureFace}
-                                          disabled={isLoading || !faceDetected || !livenessDetected}
-                                          className="bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700"
-                                        >
-                                          Verify Face
-                                        </Button>
-                                      </>
-                                    )}
-                                  </div>
-
-                                  <div className="mt-4 text-center">
-                                    <p className="mb-2 text-sm text-gray-600">
-                                      Having trouble with facial recognition?
-                                    </p>
-                                    <Button
-                                      onClick={switchToAlternativeMethod}
-                                      variant="outline"
-                                      className="w-full border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100"
-                                    >
-                                      Use Alternative Verification Method
-                                    </Button>
-                                  </div>
                                 </>
-                              )
-                            )}
+                              ) : (
+                                <div className="flex h-full w-full flex-col items-center justify-center p-4 text-white">
+                                  {cameraPermission === false ? (
+                                    <div className="text-center">
+                                      <AlertCircle className="mx-auto mb-2 h-10 w-10 text-red-500" />
+                                      <p className="text-sm">
+                                        Camera access denied. Please allow camera access in your browser settings.
+                                      </p>
+                                    </div>
+                                  ) : (
+                                    <>
+                                      <Camera className="mb-2 h-10 w-10 text-gray-400" />
+                                      <p className="text-center text-sm text-gray-400">
+                                        Click the button below to start camera
+                                      </p>
+                                    </>
+                                  )}
+                                </div>
+                              )}
+                            </div>
 
-                            {verificationMethod === "document" && (
-                              <DocumentVerification
-                                onSuccess={() => {
-                                  setVerificationMethod("biometric")
-                                }}
-                                onError={handleSecondaryVerificationError}
-                              />
-                            )}
-
-                            {verificationMethod === "biometric" && (
-                              <BiometricVerification
-                                onSuccess={() => {
-                                  setVerificationMethod("signature")
-                                }}
-                                onError={handleSecondaryVerificationError}
-                              />
-                            )}
-
-                            {verificationMethod === "signature" && (
-                              <DigitalSignature
-                                onSuccess={handleSecondaryVerificationSuccess}
-                                onError={handleSecondaryVerificationError}
-                              />
-                            )}
-
-                            {error && (
-                              <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-center text-sm text-red-700">
-                                <AlertCircle className="mr-1 inline-block h-4 w-4" />
-                                {error}
+                            {/* Camera instructions */}
+                            {isCameraActive && (
+                              <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 text-xs text-gray-600">
+                                <h5 className="font-medium text-gray-700">For best results:</h5>
+                                <ul className="mt-1 space-y-1">
+                                  <li>• Ensure your face is well-lit</li>
+                                  <li>• Remove glasses, masks, or other face coverings</li>
+                                  <li>• Look directly at the camera</li>
+                                  <li>• Keep a neutral expression</li>
+                                </ul>
                               </div>
                             )}
+
+                            {/* Troubleshooting section */}
+                            {isCameraActive && (
+                              <div className="mt-2">
+                                <button
+                                  onClick={toggleTroubleshooting}
+                                  className="flex w-full items-center justify-between rounded-lg border border-gray-200 bg-gray-50 px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100"
+                                >
+                                  <div className="flex items-center">
+                                    <RefreshCw className="mr-2 h-4 w-4 text-gray-500" />
+                                    <span>Troubleshooting Options</span>
+                                  </div>
+                                  <ChevronRight
+                                    className={`h-4 w-4 text-gray-500 transition-transform ${showTroubleshooting ? "rotate-90" : ""}`}
+                                  />
+                                </button>
+
+                                {showTroubleshooting && (
+                                  <div className="mt-2 rounded-lg border border-gray-200 bg-gray-50 p-3">
+                                    <p className="mb-2 text-xs text-gray-600">
+                                      If you're having trouble with face detection:
+                                    </p>
+                                    <div className="flex flex-wrap gap-2">
+                                      <button
+                                        onClick={switchFaceDetectionMode}
+                                        className="rounded-md bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700 hover:bg-blue-100"
+                                      >
+                                        Switch to {faceDetectionMode === "advanced" ? "Simple" : "Advanced"} Mode
+                                      </button>
+                                      <button
+                                        onClick={() => {
+                                          stopCamera()
+                                          setTimeout(() => startCamera(), 500)
+                                        }}
+                                        className="rounded-md bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700 hover:bg-blue-100"
+                                      >
+                                        Restart Camera
+                                      </button>
+                                      <button
+                                        onClick={useAlternativeVerificationMethod}
+                                        className="rounded-md bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700 hover:bg-blue-100"
+                                      >
+                                        Use Alternative Method
+                                      </button>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+
+                            <div className="flex justify-center space-x-4">
+                              {!isCameraActive ? (
+                                <>
+                                  <Button
+                                    onClick={startCamera}
+                                    disabled={isLoading || cameraPermission === false || isModelLoading}
+                                    className="bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700"
+                                  >
+                                    {isModelLoading ? "Loading Models..." : "Start Camera"}
+                                  </Button>
+                                  <Button
+                                    onClick={useAlternativeVerificationMethod}
+                                    variant="outline"
+                                    className="border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
+                                  >
+                                    Use Alternative Method
+                                  </Button>
+                                </>
+                              ) : (
+                                <>
+                                  <Button
+                                    onClick={stopCamera}
+                                    variant="outline"
+                                    disabled={isLoading}
+                                    className="border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
+                                  >
+                                    Cancel
+                                  </Button>
+                                  <Button
+                                    onClick={captureFace}
+                                    disabled={isLoading || !faceDetected}
+                                    className="bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700"
+                                  >
+                                    Verify Face
+                                  </Button>
+                                </>
+                              )}
+                            </div>
+                            {/* Force restart camera button */}
+                            <Button
+                              onClick={() => {
+                                stopCamera()
+                                setTimeout(() => {
+                                  // Force using simple detection mode which is more reliable
+                                  setFaceDetectionMode("simple")
+                                  setModelsLoaded(true)
+                                  startCamera()
+                                }, 500)
+                              }}
+                              variant="secondary"
+                              className="mt-2 w-full bg-blue-100 text-blue-700 hover:bg-blue-200"
+                            >
+                              Force Restart Camera
+                            </Button>
+                            {/* For testing - add this near the bottom of the camera section */}
+                            {process.env.NODE_ENV === "development" && (
+                              <Button
+                                onClick={() => {
+                                  setFaceVerified(true)
+                                  stopCamera()
+                                }}
+                                variant="outline"
+                                className="mt-2 w-full border-dashed border-gray-300 text-gray-500"
+                              >
+                                [DEV] Skip Face Verification
+                              </Button>
+                            )}
                           </>
-                        ) : null}
+                        ) : (
+                          // Alternative verification method (Knowledge-based + OTP)
+                          <div className="space-y-4">
+                            <div className="rounded-lg border border-blue-100 bg-blue-50 p-4">
+                              <div className="flex items-start space-x-3">
+                                <Lock className="mt-0.5 h-5 w-5 text-blue-600" />
+                                <div>
+                                  <h4 className="text-sm font-medium text-blue-800">Alternative Verification</h4>
+                                  <p className="mt-1 text-xs text-blue-700">
+                                    {verificationStep === 1
+                                      ? "Please answer your security question to verify your identity."
+                                      : "Please enter the OTP sent to your registered mobile number."}
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+
+                            {verificationStep === 1 && selectedQuestion && (
+                              <form onSubmit={verifySecurityAnswer} className="space-y-4">
+                                <div className="space-y-2">
+                                  <label className="block text-sm font-medium text-gray-700">Security Question</label>
+                                  <div className="rounded-md border border-gray-300 bg-gray-50 px-3 py-2 text-gray-700">
+                                    {selectedQuestion.question}
+                                  </div>
+                                </div>
+
+                                <div className="space-y-2">
+                                  <label htmlFor="securityAnswer" className="block text-sm font-medium text-gray-700">
+                                    Your Answer
+                                  </label>
+                                  <input
+                                    type="text"
+                                    id="securityAnswer"
+                                    value={securityAnswer}
+                                    onChange={(e) => setSecurityAnswer(e.target.value)}
+                                    className="w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                    placeholder="Enter your answer"
+                                    required
+                                  />
+                                  <p className="text-xs text-gray-500">
+                                    For demo purposes, the answer is: {selectedQuestion.answer}
+                                  </p>
+                                </div>
+
+                                {error && (
+                                  <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-center text-sm text-red-700">
+                                    <AlertCircle className="mr-1 inline-block h-4 w-4" />
+                                    {error}
+                                  </div>
+                                )}
+
+                                <Button
+                                  type="submit"
+                                  className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700"
+                                >
+                                  Verify Answer
+                                </Button>
+
+                                <div className="text-center text-xs text-gray-500">
+                                  <button
+                                    type="button"
+                                    onClick={loadSecurityQuestions}
+                                    className="text-blue-600 hover:text-blue-800 hover:underline"
+                                  >
+                                    Try a different question
+                                  </button>
+                                </div>
+                              </form>
+                            )}
+
+                            {verificationStep === 2 && (
+                              <form onSubmit={verifyOTP} className="space-y-4">
+                                <div className="space-y-2">
+                                  <div className="flex items-center justify-between">
+                                    <label htmlFor="otp" className="block text-sm font-medium text-gray-700">
+                                      Enter 6-digit OTP
+                                    </label>
+                                    <div className="flex items-center text-xs text-gray-500">
+                                      <Clock className="mr-1 h-3 w-3" />
+                                      <span>Expires in: {formatTime(otpTimer)}</span>
+                                    </div>
+                                  </div>
+                                  <input
+                                    type="text"
+                                    id="otp"
+                                    name="otp"
+                                    maxLength={6}
+                                    pattern="\d{6}"
+                                    placeholder="Enter 6-digit OTP"
+                                    className="w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                    required
+                                  />
+                                  <p className="text-xs text-gray-500">For demo purposes, the OTP is: {otpCode}</p>
+                                </div>
+
+                                {error && (
+                                  <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-center text-sm text-red-700">
+                                    <AlertCircle className="mr-1 inline-block h-4 w-4" />
+                                    {error}
+                                  </div>
+                                )}
+
+                                <Button
+                                  type="submit"
+                                  className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700"
+                                >
+                                  Verify OTP
+                                </Button>
+
+                                <div className="text-center text-xs text-gray-500">
+                                  <p>
+                                    Didn't receive the OTP?{" "}
+                                    <button
+                                      type="button"
+                                      onClick={sendOTP}
+                                      className="text-blue-600 hover:text-blue-800 hover:underline"
+                                    >
+                                      Resend OTP
+                                    </button>
+                                  </p>
+                                </div>
+                              </form>
+                            )}
+                          </div>
+                        )}
+
+                        {/* For testing only - in development mode */}
+                        {process.env.NODE_ENV === "development" && (
+                          <div className="mt-4 text-center">
+                            <button onClick={skipVerification} className="text-xs text-gray-400 hover:text-gray-600">
+                              [DEV] Skip verification
+                            </button>
+                          </div>
+                        )}
                       </>
                     ) : (
                       <div className="space-y-4">
@@ -2273,8 +1844,14 @@ export default function VoteVerificationPage() {
                               <span className="font-medium text-gray-800">{new Date().toLocaleString()}</span>
                             </div>
                             <div className="flex justify-between py-2">
-                              <span className="text-gray-600">Methods:</span>
-                              <span className="font-medium text-gray-800">Facial + Document + Biometric</span>
+                              <span className="text-gray-600">Method:</span>
+                              <span className="font-medium text-gray-800">
+                                {useAlternativeVerification
+                                  ? "Knowledge-based + OTP"
+                                  : faceDetectionMode === "simple"
+                                    ? "Simplified Facial Recognition"
+                                    : "Advanced Facial Recognition"}
+                              </span>
                             </div>
                           </div>
                         </div>
@@ -2307,7 +1884,23 @@ export default function VoteVerificationPage() {
             </CardFooter>
           </Card>
         </div>
-
+        {debugMode && isCameraActive && (
+          <div className="mt-2 rounded-lg border border-gray-200 bg-gray-50 p-3 text-xs">
+            <h5 className="font-medium text-gray-700">Debug Info:</h5>
+            <ul className="mt-1 space-y-1 text-gray-600">
+              <li>• Camera Active: {isCameraActive ? "Yes" : "No"}</li>
+              <li>
+                • Video Size: {videoRef.current?.videoWidth || 0}x{videoRef.current?.videoHeight || 0}
+              </li>
+              <li>
+                • Canvas Size: {canvasRef.current?.width || 0}x{canvasRef.current?.height || 0}
+              </li>
+              <li>• Face Detected: {faceDetected ? "Yes" : "No"}</li>
+              <li>• Detection Mode: {faceDetectionMode}</li>
+              <li>• Detection Quality: {Math.round(faceDetectionQuality)}%</li>
+            </ul>
+          </div>
+        )}
         {/* Add custom CSS for animations */}
         <style
           dangerouslySetInnerHTML={{
