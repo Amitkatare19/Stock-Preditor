@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect } from "react"
-import { AlertCircle, Camera, ChevronRight, RefreshCw, Zap, AlertTriangle } from "lucide-react"
+import { AlertCircle, Camera, ChevronRight, RefreshCw, Zap } from "lucide-react"
 import { useVerification } from "../../context/VerificationContext"
 import { Button } from "./UIComponents"
 import * as faceapi from "face-api.js"
@@ -51,7 +51,6 @@ const FacialVerification = () => {
     facialRecognitionFailed,
     showAlternativeOption,
     handleFacialRecognitionFailure,
-    switchToAlternativeVerification,
   } = useVerification()
 
   // Load face-api models
@@ -102,29 +101,47 @@ const FacialVerification = () => {
       if (!tinyFaceValid || !faceLandmarkValid || !faceRecognitionValid) {
         console.log("Some model files are missing, falling back to enhanced detection")
         setFaceDetectionMode("enhanced")
+        setModelLoadingError("Some model files could not be loaded. Using enhanced detection method.")
         setIsModelLoading(false)
         return
       }
 
       // Try to load models with better error handling
       try {
-        console.log("Loading tiny face detector model...")
-        await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL)
-        console.log("Tiny face detector model loaded successfully")
+        // Load models one by one with individual error handling
+        try {
+          console.log("Loading tiny face detector model...")
+          await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL)
+          console.log("Tiny face detector model loaded successfully")
+        } catch (error) {
+          console.error("Error loading tiny face detector model:", error)
+          throw new Error("Failed to load face detector model")
+        }
 
-        console.log("Loading face landmark model...")
-        await faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL)
-        console.log("Face landmark model loaded successfully")
+        try {
+          console.log("Loading face landmark model...")
+          await faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL)
+          console.log("Face landmark model loaded successfully")
+        } catch (error) {
+          console.error("Error loading face landmark model:", error)
+          throw new Error("Failed to load face landmark model")
+        }
 
-        console.log("Loading face recognition model...")
-        await faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
-        console.log("Face recognition model loaded successfully")
+        try {
+          console.log("Loading face recognition model...")
+          await faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
+          console.log("Face recognition model loaded successfully")
+        } catch (error) {
+          console.error("Error loading face recognition model:", error)
+          throw new Error("Failed to load face recognition model")
+        }
 
         console.log("All face-API models loaded successfully")
         setFaceDetectionMode("advanced")
       } catch (error) {
         console.error("Error loading models:", error)
         console.log("Falling back to enhanced detection")
+        setModelLoadingError(`${error.message}. Using enhanced detection method.`)
         setFaceDetectionMode("enhanced")
       }
     } catch (error) {
@@ -269,19 +286,28 @@ const FacialVerification = () => {
     // Use requestAnimationFrame for smoother detection
     const detectFrame = () => {
       if (videoRef.current && canvasRef.current && isCameraActive) {
-        if (faceDetectionMode === "enhanced") {
-          // Use enhanced face detection
-          const result = EnhancedFaceDetector.detectFace(videoRef.current, canvasRef.current)
-          setFaceDetected(result.detected)
-          setFaceDetectionQuality(result.quality)
+        try {
+          if (faceDetectionMode === "enhanced") {
+            // Use enhanced face detection
+            const result = EnhancedFaceDetector.detectFace(videoRef.current, canvasRef.current)
+            setFaceDetected(result.detected)
+            setFaceDetectionQuality(result.quality)
 
-          // Store landmarks for liveness detection
-          if (result.landmarks) {
-            setPreviousLandmarks(result.landmarks)
+            // Store landmarks for liveness detection
+            if (result.landmarks) {
+              setPreviousLandmarks(result.landmarks)
+            }
+          } else {
+            // Use face-api.js
+            detectFace()
           }
-        } else {
-          // Use face-api.js
-          detectFace()
+        } catch (error) {
+          console.error("Error in face detection frame:", error)
+          // If there's an error in the detection frame, switch to enhanced mode
+          if (faceDetectionMode !== "enhanced") {
+            console.log("Error in advanced detection, switching to enhanced mode")
+            setFaceDetectionMode("enhanced")
+          }
         }
       }
       animationRef = requestAnimationFrame(detectFrame)
@@ -425,8 +451,9 @@ const FacialVerification = () => {
       console.error("Error during face detection:", error)
       // If face-api.js fails, try to fall back to enhanced detection
       if (faceDetectionMode === "advanced") {
-        console.log("Falling back to enhanced face detection")
+        console.log("Falling back to enhanced face detection due to error:", error.message)
         setFaceDetectionMode("enhanced")
+        showAlert("Advanced face detection failed. Using enhanced detection method.", "warning")
       }
     }
   }
@@ -587,6 +614,17 @@ const FacialVerification = () => {
     }
   }, [])
 
+  // Update the switchToAlternativeVerification function to remove the button
+  const handleSwitchToAlternativeVerification = () => {
+    // Stop camera if it's active
+    if (isCameraActive) {
+      stopCamera()
+    }
+
+    // Switch to alternative verification method
+    setVerificationMethod("alternative")
+  }
+
   return (
     <div className="space-y-4">
       <div className="rounded-lg border border-blue-100 bg-blue-50 p-4">
@@ -723,27 +761,6 @@ const FacialVerification = () => {
         </div>
       )}
 
-      {/* Alternative verification option */}
-      {showAlternativeOption && (
-        <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-4">
-          <div className="flex items-start space-x-3">
-            <AlertTriangle className="mt-0.5 h-5 w-5 text-amber-600" />
-            <div>
-              <h4 className="text-sm font-medium text-amber-800">Having trouble with facial verification?</h4>
-              <p className="mt-1 text-xs text-amber-700">
-                If you're unable to complete facial verification, you can use our alternative verification method.
-              </p>
-              <button
-                onClick={switchToAlternativeVerification}
-                className="mt-2 rounded-md bg-amber-100 px-3 py-1.5 text-xs font-medium text-amber-800 hover:bg-amber-200"
-              >
-                Use Alternative Verification Method
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Troubleshooting section */}
       {isCameraActive && (
         <div className="mt-2">
@@ -818,7 +835,7 @@ const FacialVerification = () => {
       {/* Alternative verification option button */}
       <div className="mt-4 text-center">
         <button
-          onClick={switchToAlternativeVerification}
+          onClick={handleSwitchToAlternativeVerification}
           className="text-sm text-blue-600 hover:text-blue-800 hover:underline"
         >
           Having trouble? Use alternative verification method
