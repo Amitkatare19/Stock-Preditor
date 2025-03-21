@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
-import { Camera, AlertCircle, UserCheck } from "lucide-react"
+import { Camera, AlertCircle, UserCheck, HelpCircle } from "lucide-react"
 import { Button } from "./UIComponents"
 import { useVerification } from "../../context/VerificationContext"
 
@@ -188,14 +188,19 @@ const FacialVerification = () => {
           </div>
         )}
 
-        {error && (
+        {/* Always show the alternative verification option */}
+        <div className="mt-4 border-t pt-4">
+          <div className="flex items-center justify-center mb-2 text-sm text-gray-500">
+            <HelpCircle className="h-4 w-4 mr-1" />
+            <span>Having trouble with camera verification?</span>
+          </div>
           <Button
             onClick={switchToAlternativeVerification}
             className="w-full bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"
           >
             Use Alternative Verification Method
           </Button>
-        )}
+        </div>
       </div>
     </div>
   )
