@@ -50,7 +50,7 @@ function App() {
             <Route path="elections/:id" element={<ElectionDetailsPage />} />
             <Route path="documents" element={<DocumentsPage />} />
             <Route path="settings" element={<SettingsPage />} />
-            <Route path="help-support" element={<HelpSupportPage />} />
+            <Route path="help" element={<HelpSupportPage />} />
             <Route path="polling-map" element={<PollingMapPage />} />
           </Route>
 
@@ -63,13 +63,13 @@ function App() {
               </VerificationProvider>
             }
           />
-          <Route path="/voting" element={<VotingPage />} />
+          <Route path="/voting/cast-vote" element={<VotingPage />} />
 
           {/* Admin routes */}
           <Route path="/admin" element={<AdminDashboard />}>
             <Route index element={<AdminHome />} />
             <Route path="voters" element={<VoterManagement />} />
-            <Route path="register" element={<RegisterUserPage />} />
+            <Route path="register-user" element={<RegisterUserPage />} />
           </Route>
 
           {/* Fallback routes */}

@@ -1,35 +1,30 @@
-import React from "react";
-import { Check, ChevronRight } from 'lucide-react';
-import { useNavigate } from "react-router-dom";
-import { useVerification } from "../../context/VerificationContext";
-import { Button } from "./UIComponents";
+"use client"
+import { Check, ChevronRight } from "lucide-react"
+import { useNavigate } from "react-router-dom"
+import { useVerification } from "../../context/VerificationContext"
+import { Button } from "./UIComponents"
 
 const VerificationSuccess = () => {
-  const navigate = useNavigate();
-  const {
-    deviceFingerprint,
-    ipAddress,
-    geoLocation,
-    showAlternativeMethod,
-  } = useVerification();
+  const navigate = useNavigate()
+  const { deviceFingerprint, ipAddress, geoLocation, showAlternativeMethod } = useVerification()
 
   // Proceed to voting page
   const proceedToVoting = () => {
     // Set a flag in session storage to indicate the user has been verified
-    sessionStorage.setItem("voteVerified", "true");
-    
+    sessionStorage.setItem("voteVerified", "true")
+
     // Store verification timestamp and method
     const verificationData = {
       timestamp: new Date().toISOString(),
       method: showAlternativeMethod ? "alternative" : "facial",
       deviceFingerprint: deviceFingerprint,
       ipAddress: ipAddress,
-      geoLocation: geoLocation
-    };
-    sessionStorage.setItem("voteVerificationData", JSON.stringify(verificationData));
-    
-    navigate("/voting/cast-vote");
-  };
+      geoLocation: geoLocation,
+    }
+    sessionStorage.setItem("voteVerificationData", JSON.stringify(verificationData))
+
+    navigate("/voting/cast-vote")
+  }
 
   return (
     <div className="space-y-4">
@@ -57,23 +52,22 @@ const VerificationSuccess = () => {
           <div className="flex justify-between py-2">
             <span className="text-gray-600">Methods:</span>
             <span className="font-medium text-gray-800">
-              {showAlternativeMethod 
-                ? "Alternative (Multi-factor)" 
-                : "Facial + Document + Biometric"}
+              {showAlternativeMethod ? "Alternative (Multi-factor)" : "Facial + Document + Biometric"}
             </span>
           </div>
         </div>
       </div>
 
       <Button
-        onClick={proceedToVoting}
-        className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700"
+        onClick={() => navigate("/voting/cast-vote")}
+        className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white"
       >
         Proceed to Voting
         <ChevronRight className="ml-1 h-4 w-4" />
       </Button>
     </div>
-  );
-};
+  )
+}
 
-export default VerificationSuccess;
+export default VerificationSuccess
+
