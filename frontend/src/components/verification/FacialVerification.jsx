@@ -1,18 +1,27 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
-import { Camera, AlertCircle } from "lucide-react"
+import { Camera, AlertCircle, UserCheck } from "lucide-react"
 import { Button } from "./UIComponents"
+import { useVerification } from "../../context/VerificationContext"
 
 const FacialVerification = () => {
   const videoRef = useRef(null)
+  const canvasRef = useRef(null)
   const [isStreaming, setIsStreaming] = useState(false)
   const [error, setError] = useState(null)
   const [isLoading, setIsLoading] = useState(false)
+  const [photoTaken, setPhotoTaken] = useState(false)
+  const [showPhotoPreview, setShowPhotoPreview] = useState(false)
+
+  // Get verification context functions
+  const { handleSecondaryVerificationSuccess, switchToAlternativeVerification } = useVerification()
 
   const startCamera = async () => {
     setError(null)
     setIsLoading(true)
+    setPhotoTaken(false)
+    setShowPhotoPreview(false)
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -22,6 +31,8 @@ const FacialVerification = () => {
 
       if (videoRef.current) {
         videoRef.current.srcObject = stream
+        videoRef.current.style.display = "block" // Ensure video is visible
+
         videoRef.current.onloadedmetadata = () => {
           videoRef.current
             .play()
@@ -52,6 +63,40 @@ const FacialVerification = () => {
     }
   }
 
+  const takePhoto = () => {
+    if (!videoRef.current || !isStreaming) return
+
+    // Create canvas if it doesn't exist
+    if (!canvasRef.current) {
+      const canvas = document.createElement("canvas")
+      canvasRef.current = canvas
+    }
+
+    const canvas = canvasRef.current
+    const video = videoRef.current
+
+    // Set canvas dimensions to match video
+    canvas.width = video.videoWidth
+    canvas.height = video.videoHeight
+
+    // Draw video frame to canvas
+    const ctx = canvas.getContext("2d")
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
+
+    // In a real app, you would now process this image for facial recognition
+    console.log("Photo captured")
+
+    // Show success state
+    setPhotoTaken(true)
+    setShowPhotoPreview(true)
+
+    // In a real implementation, you would verify the photo here
+    // For this demo, we'll simulate a successful verification after 2 seconds
+    setTimeout(() => {
+      handleSecondaryVerificationSuccess()
+    }, 2000)
+  }
+
   // Clean up on unmount
   useEffect(() => {
     return () => {
@@ -68,7 +113,11 @@ const FacialVerification = () => {
           <Camera className="mt-0.5 h-5 w-5 text-blue-600" />
           <div>
             <h4 className="text-sm font-medium text-blue-800">Camera Access</h4>
-            <p className="mt-1 text-xs text-blue-700">Click the button below to start the camera.</p>
+            <p className="mt-1 text-xs text-blue-700">
+              {!isStreaming
+                ? "Click the button below to start the camera."
+                : "Look directly at the camera and click 'Take Photo'."}
+            </p>
           </div>
         </div>
       </div>
@@ -94,6 +143,14 @@ const FacialVerification = () => {
           </div>
         )}
 
+        {photoTaken && showPhotoPreview && (
+          <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center text-white">
+            <UserCheck className="h-16 w-16 text-green-500 mb-2" />
+            <p className="text-xl font-bold">Photo captured!</p>
+            <p className="text-sm">Verifying your identity...</p>
+          </div>
+        )}
+
         <video
           ref={videoRef}
           autoPlay
@@ -103,7 +160,7 @@ const FacialVerification = () => {
         />
       </div>
 
-      <div className="flex justify-center">
+      <div className="flex flex-col space-y-3">
         {!isStreaming ? (
           <Button
             onClick={startCamera}
@@ -113,11 +170,30 @@ const FacialVerification = () => {
             {isLoading ? "Starting Camera..." : "Start Camera"}
           </Button>
         ) : (
+          <div className="flex flex-col space-y-3">
+            <Button
+              onClick={takePhoto}
+              disabled={photoTaken}
+              className="w-full bg-gradient-to-r from-green-600 to-teal-600 text-white hover:from-green-700 hover:to-teal-700"
+            >
+              {photoTaken ? "Photo Captured" : "Take Photo"}
+            </Button>
+
+            <Button
+              onClick={stopCamera}
+              className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700"
+            >
+              Stop Camera
+            </Button>
+          </div>
+        )}
+
+        {error && (
           <Button
-            onClick={stopCamera}
-            className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700"
+            onClick={switchToAlternativeVerification}
+            className="w-full bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"
           >
-            Stop Camera
+            Use Alternative Verification Method
           </Button>
         )}
       </div>

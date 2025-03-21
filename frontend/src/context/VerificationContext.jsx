@@ -216,9 +216,13 @@ export const VerificationProvider = ({ children }) => {
 
   // Switch to alternative verification method
   const switchToAlternativeMethod = () => {
-    // This function is now disabled
-    console.log("Alternative verification method is disabled")
-    return
+    stopCamera()
+    setShowAlternativeMethod(true)
+    setVerificationMethod("alternative")
+    showAlert("Switched to alternative verification method.", "info")
+
+    // Log this event for security purposes
+    console.log(`User switched to alternative verification. Device: ${deviceFingerprint}, IP: ${ipAddress}`)
   }
 
   // Add this function to the VerificationProvider component
