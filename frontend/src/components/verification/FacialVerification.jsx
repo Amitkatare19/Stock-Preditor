@@ -193,35 +193,39 @@ const FacialVerification = () => {
       streamRef.current = stream
       videoRef.current.muted = true
       videoRef.current.playsInline = true
+      videoRef.current.style.display = "block" // Ensure display is set to block
 
       // Wait for video to be ready
       videoRef.current.onloadedmetadata = () => {
         console.log("Video metadata loaded, playing video")
-        videoRef.current
-          .play()
-          .then(() => {
-            console.log("Video playing successfully")
-            setIsCameraActive(true)
-            setCameraPermission(true)
-            setIsLoading(false)
+        // Force a small timeout to ensure the browser has time to process
+        setTimeout(() => {
+          videoRef.current
+            .play()
+            .then(() => {
+              console.log("Video playing successfully")
+              setIsCameraActive(true)
+              setCameraPermission(true)
+              setIsLoading(false)
 
-            // Set canvas dimensions to match video
-            if (canvasRef.current) {
-              canvasRef.current.width = videoRef.current.videoWidth || 640
-              canvasRef.current.height = videoRef.current.videoHeight || 480
-            }
+              // Set canvas dimensions to match video
+              if (canvasRef.current) {
+                canvasRef.current.width = videoRef.current.videoWidth || 640
+                canvasRef.current.height = videoRef.current.videoHeight || 480
+              }
 
-            // Start face detection
-            startFaceDetection()
+              // Start face detection
+              startFaceDetection()
 
-            // Start liveness detection
-            startLivenessDetection()
-          })
-          .catch((err) => {
-            console.error("Error playing video:", err)
-            showAlert(`Error playing video: ${err.message}. Try reloading the page.`, "error")
-            setIsLoading(false)
-          })
+              // Start liveness detection
+              startLivenessDetection()
+            })
+            .catch((err) => {
+              console.error("Error playing video:", err)
+              showAlert(`Error playing video: ${err.message}. Try reloading the page.`, "error")
+              setIsLoading(false)
+            })
+        }, 100)
       }
 
       videoRef.current.onerror = (err) => {
@@ -625,6 +629,23 @@ const FacialVerification = () => {
     setVerificationMethod("alternative")
   }
 
+  // Ensure video is displayed when camera is active
+  useEffect(() => {
+    if (isCameraActive && videoRef.current && videoRef.current.srcObject) {
+      console.log("Camera is active, ensuring video display")
+      videoRef.current.style.display = "block"
+
+      // Force a redraw of the video element
+      setTimeout(() => {
+        if (videoRef.current) {
+          videoRef.current.play().catch((err) => {
+            console.error("Error playing video after ensuring display:", err)
+          })
+        }
+      }, 100)
+    }
+  }, [isCameraActive])
+
   return (
     <div className="space-y-4">
       <div className="rounded-lg border border-blue-100 bg-blue-50 p-4">
@@ -668,11 +689,16 @@ const FacialVerification = () => {
               playsInline
               muted
               className="h-full w-full object-cover"
-              style={{ display: isCameraActive ? "block" : "none" }}
+              style={{ display: "block" }}
               width={640}
               height={480}
             />
-            <canvas ref={canvasRef} className="absolute inset-0 h-full w-full object-cover" width={640} height={480} />
+            <canvas
+              ref={canvasRef}
+              className="absolute inset-0 h-full w-full object-cover pointer-events-none"
+              width={640}
+              height={480}
+            />
             {isLoading && (
               <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/50">
                 <div className="flex flex-col items-center space-y-2 text-white">
