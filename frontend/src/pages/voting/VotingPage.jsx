@@ -1,10 +1,9 @@
 "use client"
 
-import React, { useState, useEffect, useRef } from "react"
+import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import {
   AlertCircle,
-  Check,
   ChevronRight,
   HelpCircle,
   Info,
@@ -13,293 +12,61 @@ import {
   Clock,
   User,
   MapPin,
-  CheckCircle2,
-  X,
   ChevronDown,
-  Eye,
-  Sparkles,
   Loader2,
+  Sparkles,
 } from "lucide-react"
+import { VotingProvider, useVoting } from "../../context/VotingContext"
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+  CardFooter,
+  Badge,
+  Tooltip,
+  Modal,
+  ProgressBar,
+} from "../../components/voting/VotingUIComponents"
+import SessionTimer from "../../components/voting/SessionTimer"
+import CandidateCard from "../../components/voting/CandidateCard"
+import CandidateDetails from "../../components/voting/CandidateDetails"
+import VoteReceipt from "../../components/voting/VoteReceipt"
+import { cn } from "../../utils/cn"
 
-// Simple utility function for combining class names without dependencies
-const cn = (...classes) => {
-  return classes
-    .filter(Boolean)
-    .join(" ")
-    .replace(/border-border/g, "border")
-}
-
-// UI Components
-const Button = React.forwardRef(
-  ({ className, variant = "default", size = "default", asChild = false, ...props }, ref) => {
-    const Comp = asChild ? "button" : "button"
-
-    let variantClasses = ""
-    if (variant === "default") variantClasses = "bg-primary text-primary-foreground hover:bg-primary/90"
-    else if (variant === "destructive")
-      variantClasses = "bg-destructive text-destructive-foreground hover:bg-destructive/90"
-    else if (variant === "outline")
-      variantClasses = "border border-input bg-background hover:bg-accent hover:text-accent-foreground"
-    else if (variant === "secondary") variantClasses = "bg-secondary text-secondary-foreground hover:bg-secondary/80"
-    else if (variant === "ghost") variantClasses = "hover:bg-accent hover:text-accent-foreground"
-    else if (variant === "link") variantClasses = "text-primary underline-offset-4 hover:underline"
-    else if (variant === "indigo") variantClasses = "bg-indigo-600 text-white hover:bg-indigo-700"
-    else if (variant === "purple") variantClasses = "bg-purple-600 text-white hover:bg-purple-700"
-
-    let sizeClasses = ""
-    if (size === "default") sizeClasses = "h-10 px-4 py-2"
-    else if (size === "sm") sizeClasses = "h-9 rounded-md px-3"
-    else if (size === "lg") sizeClasses = "h-11 rounded-md px-8"
-    else if (size === "icon") sizeClasses = "h-10 w-10"
-
-    if (asChild) {
-      return <React.Fragment ref={ref} {...props} />
-    }
-
-    return (
-      <Comp
-        className={cn(
-          "inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
-          variantClasses,
-          sizeClasses,
-          className,
-        )}
-        ref={ref}
-        {...props}
-      />
-    )
-  },
-)
-Button.displayName = "Button"
-
-const Card = React.forwardRef(({ className, ...props }, ref) => (
-  <div ref={ref} className={cn("rounded-lg border bg-card text-card-foreground shadow-sm", className)} {...props} />
-))
-Card.displayName = "Card"
-
-const CardHeader = React.forwardRef(({ className, ...props }, ref) => (
-  <div ref={ref} className={cn("flex flex-col space-y-1.5 p-6", className)} {...props} />
-))
-CardHeader.displayName = "CardHeader"
-
-const CardTitle = React.forwardRef(({ className, ...props }, ref) => (
-  <h3 ref={ref} className={cn("text-2xl font-semibold leading-none tracking-tight", className)} {...props} />
-))
-CardTitle.displayName = "CardTitle"
-
-const CardDescription = React.forwardRef(({ className, ...props }, ref) => (
-  <p ref={ref} className={cn("text-sm text-muted-foreground", className)} {...props} />
-))
-CardDescription.displayName = "CardDescription"
-
-const CardContent = React.forwardRef(({ className, ...props }, ref) => (
-  <div ref={ref} className={cn("p-6 pt-0", className)} {...props} />
-))
-CardContent.displayName = "CardContent"
-
-const CardFooter = React.forwardRef(({ className, ...props }, ref) => (
-  <div ref={ref} className={cn("flex items-center p-6 pt-0", className)} {...props} />
-))
-CardFooter.displayName = "CardFooter"
-
-// Badge component
-const Badge = React.forwardRef(({ className, variant = "default", ...props }, ref) => {
-  const variantClasses = {
-    default: "bg-primary/10 text-primary hover:bg-primary/20",
-    secondary: "bg-secondary/10 text-secondary hover:bg-secondary/20",
-    outline: "border border-input bg-background hover:bg-accent hover:text-accent-foreground",
-    success: "bg-green-100 text-green-800 hover:bg-green-200",
-    warning: "bg-yellow-100 text-yellow-800 hover:bg-yellow-200",
-    danger: "bg-red-100 text-red-800 hover:bg-red-200",
-    info: "bg-blue-100 text-blue-800 hover:bg-blue-200",
-    purple: "bg-purple-100 text-purple-800 hover:bg-purple-200",
-    indigo: "bg-indigo-100 text-indigo-800 hover:bg-indigo-200",
-  }
-
-  return (
-    <span
-      ref={ref}
-      className={cn(
-        "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium transition-colors",
-        variantClasses[variant] || variantClasses.default,
-        className,
-      )}
-      {...props}
-    />
-  )
-})
-Badge.displayName = "Badge"
-
-// Tooltip component
-const Tooltip = ({ children, content, position = "top" }) => {
-  const [isVisible, setIsVisible] = useState(false)
-  const positionClasses = {
-    top: "bottom-full left-1/2 -translate-x-1/2 mb-2",
-    bottom: "top-full left-1/2 -translate-x-1/2 mt-2",
-    left: "right-full top-1/2 -translate-y-1/2 mr-2",
-    right: "left-full top-1/2 -translate-y-1/2 ml-2",
-  }
-
-  return (
-    <div
-      className="relative inline-block"
-      onMouseEnter={() => setIsVisible(true)}
-      onMouseLeave={() => setIsVisible(false)}
-    >
-      {children}
-      {isVisible && (
-        <div
-          className={cn(
-            "absolute z-50 w-max max-w-xs rounded-md bg-black px-3 py-1.5 text-xs text-white animate-in fade-in-50 data-[side=bottom]:slide-in-from-top-1 data-[side=left]:slide-in-from-right-1 data-[side=right]:slide-in-from-left-1 data-[side=top]:slide-in-from-bottom-1",
-            positionClasses[position],
-          )}
-        >
-          {content}
-          <div
-            className={cn(
-              "absolute h-2 w-2 rotate-45 bg-black",
-              position === "top" && "top-full left-1/2 -translate-x-1/2 -translate-y-1/2",
-              position === "bottom" && "bottom-full left-1/2 -translate-x-1/2 translate-y-1/2",
-              position === "left" && "left-full top-1/2 -translate-x-1/2 -translate-y-1/2",
-              position === "right" && "right-full top-1/2 translate-x-1/2 -translate-y-1/2",
-            )}
-          />
-        </div>
-      )}
-    </div>
-  )
-}
-
-// Modal component
-const Modal = ({ isOpen, onClose, title, children }) => {
-  const modalRef = useRef(null)
-
-  useEffect(() => {
-    const handleEscape = (e) => {
-      if (e.key === "Escape") onClose()
-    }
-
-    const handleClickOutside = (e) => {
-      if (modalRef.current && !modalRef.current.contains(e.target)) {
-        onClose()
-      }
-    }
-
-    if (isOpen) {
-      document.addEventListener("keydown", handleEscape)
-      document.addEventListener("mousedown", handleClickOutside)
-      document.body.style.overflow = "hidden"
-    }
-
-    return () => {
-      document.removeEventListener("keydown", handleEscape)
-      document.removeEventListener("mousedown", handleClickOutside)
-      document.body.style.overflow = "auto"
-    }
-  }, [isOpen, onClose])
-
-  if (!isOpen) return null
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm transition-all">
-      <div
-        ref={modalRef}
-        className="w-full max-w-md rounded-lg bg-white p-6 shadow-lg animate-in fade-in-50 slide-in-from-bottom-10 duration-300"
-      >
-        <div className="mb-4 flex items-center justify-between">
-          <h3 className="text-lg font-medium">{title}</h3>
-          <button
-            onClick={onClose}
-            className="rounded-full p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
-            aria-label="Close"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-        <div>{children}</div>
-      </div>
-    </div>
-  )
-}
-
-// Progress bar component
-const ProgressBar = ({ value, max, className }) => {
-  const percentage = Math.min(100, Math.max(0, (value / max) * 100))
-
-  return (
-    <div className={cn("h-2 w-full overflow-hidden rounded-full bg-gray-200", className)}>
-      <div
-        className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 transition-all duration-500 ease-in-out"
-        style={{ width: `${percentage}%` }}
-      />
-    </div>
-  )
-}
-
-// Session timer component
-const SessionTimer = ({ duration = 300, onExpire }) => {
-  const [timeLeft, setTimeLeft] = useState(duration)
-
-  useEffect(() => {
-    if (timeLeft <= 0) {
-      onExpire?.()
-      return
-    }
-
-    const timer = setTimeout(() => {
-      setTimeLeft((prev) => prev - 1)
-    }, 1000)
-
-    return () => clearTimeout(timer)
-  }, [timeLeft, onExpire])
-
-  const minutes = Math.floor(timeLeft / 60)
-  const seconds = timeLeft % 60
-
-  return (
-    <div className="flex items-center space-x-1.5 text-sm">
-      <Clock className="h-3.5 w-3.5" />
-      <span
-        className={cn(
-          "font-medium",
-          timeLeft < 60 ? "text-red-500" : timeLeft < 120 ? "text-yellow-500" : "text-gray-500",
-        )}
-      >
-        {minutes.toString().padStart(2, "0")}:{seconds.toString().padStart(2, "0")}
-      </span>
-    </div>
-  )
-}
-
-export default function VotingPage() {
+const VotingPageContent = () => {
   const navigate = useNavigate()
-  const [userData, setUserData] = useState(null)
-  const [candidates, setCandidates] = useState([])
-  const [selectedCandidate, setSelectedCandidate] = useState(null)
-  const [isVoting, setIsVoting] = useState(false)
-  const [voteSubmitted, setVoteSubmitted] = useState(false)
-  const [error, setError] = useState(null)
+  const {
+    userData,
+    filteredCandidates,
+    selectedCandidate,
+    isVoting,
+    voteSubmitted,
+    error,
+    voteReceipt,
+    activeTab,
+    searchTerm,
+    sessionExpired,
+    showSuccessAnimation,
+    loadingProgress,
+    showFilters,
+    setActiveTab,
+    setSearchTerm,
+    selectCandidate,
+    submitVote,
+    handleSessionExpired,
+    returnToDashboard,
+    toggleFilters,
+    setError,
+  } = useVoting()
+
   const [showHelp, setShowHelp] = useState(false)
   const [showConfirmation, setShowConfirmation] = useState(false)
   const [showCandidateDetails, setShowCandidateDetails] = useState(false)
   const [selectedCandidateDetails, setSelectedCandidateDetails] = useState(null)
   const [showSecurityInfo, setShowSecurityInfo] = useState(false)
-  const [voteReceipt, setVoteReceipt] = useState(null)
-  const [activeTab, setActiveTab] = useState("all")
-  const [searchTerm, setSearchTerm] = useState("")
   const [showQRCode, setShowQRCode] = useState(false)
-  const [sessionExpired, setSessionExpired] = useState(false)
-  const [showSuccessAnimation, setShowSuccessAnimation] = useState(false)
-  const [loadingProgress, setLoadingProgress] = useState(0)
-  const [showFilters, setShowFilters] = useState(false)
-
-  // Check if user has already voted
-  useEffect(() => {
-    const hasVoted = sessionStorage.getItem("hasVoted") === "true"
-    if (hasVoted) {
-      navigate("/dashboard")
-    }
-  }, [navigate])
 
   // Animated elements
   const [animatedElements, setAnimatedElements] = useState({
@@ -308,258 +75,12 @@ export default function VotingPage() {
     controls: false,
   })
 
-  // Check if user is verified
+  // Start animations
   useEffect(() => {
-    const isVerified = sessionStorage.getItem("voteVerified")
-    if (!isVerified) {
-      navigate("/voting/verify")
-      return
-    }
-
-    // Load user data
-    try {
-      const storedUserData = sessionStorage.getItem("userData")
-      if (storedUserData) {
-        setUserData(JSON.parse(storedUserData))
-      }
-    } catch (error) {
-      console.error("Error loading user data:", error)
-    }
-
-    // Load candidates
-    loadCandidates()
-
-    // Start animations
     setTimeout(() => setAnimatedElements((prev) => ({ ...prev, header: true })), 100)
     setTimeout(() => setAnimatedElements((prev) => ({ ...prev, candidates: true })), 300)
     setTimeout(() => setAnimatedElements((prev) => ({ ...prev, controls: true })), 500)
-  }, [navigate])
-
-  // Load candidates (mock data for demo)
-  const loadCandidates = () => {
-    const mockCandidates = [
-      {
-        id: 1,
-        name: "Rajesh Kumar",
-        party: "National Democratic Alliance",
-        partyShort: "NDA",
-        symbol: "🌷", // Lotus symbol
-        image: "/placeholder.svg?height=100&width=100",
-        color: "bg-orange-100 border-orange-300",
-        buttonColor: "bg-indigo-600 hover:bg-indigo-700",
-        category: "national",
-        details: {
-          age: 52,
-          education: "Ph.D. in Public Policy",
-          experience: "15 years as Member of Parliament",
-          achievements: [
-            "Led infrastructure development projects worth ₹500 crore",
-            "Authored 3 major policy reforms in education sector",
-            "Increased constituency development index by 25%",
-          ],
-          manifesto: [
-            "Infrastructure development in rural areas",
-            "Job creation through manufacturing sector",
-            "National security enhancement",
-            "Digital India initiatives",
-          ],
-          socialMedia: {
-            twitter: "@rajeshkumar",
-            facebook: "rajeshkumarofficial",
-            instagram: "rajesh.kumar.official",
-          },
-        },
-      },
-      {
-        id: 2,
-        name: "Priya Sharma",
-        party: "United Progressive Alliance",
-        partyShort: "UPA",
-        symbol: "✋", // Hand symbol
-        image: "/placeholder.svg?height=100&width=100",
-        color: "bg-blue-100 border-blue-300",
-        buttonColor: "bg-indigo-600 hover:bg-indigo-700",
-        category: "national",
-        details: {
-          age: 48,
-          education: "Master's in Economics",
-          experience: "Former State Minister, 10 years in politics",
-          achievements: [
-            "Implemented universal healthcare program in her state",
-            "Reduced gender gap in education by 15%",
-            "Established 50 women's empowerment centers",
-          ],
-          manifesto: [
-            "Universal healthcare access",
-            "Education reforms and scholarships",
-            "Women's empowerment programs",
-            "Environmental protection policies",
-          ],
-          socialMedia: {
-            twitter: "@priyasharma",
-            facebook: "priyasharmaofficial",
-            instagram: "priya.sharma.official",
-          },
-        },
-      },
-      {
-        id: 3,
-        name: "Amit Patel",
-        party: "Regional People's Front",
-        partyShort: "RPF",
-        symbol: "🚲", // Bicycle symbol
-        image: "/placeholder.svg?height=100&width=100",
-        color: "bg-green-100 border-green-300",
-        buttonColor: "bg-indigo-600 hover:bg-indigo-700",
-        category: "regional",
-        details: {
-          age: 45,
-          education: "Law Degree",
-          experience: "Grassroots activist, 8 years as MLA",
-          achievements: [
-            "Secured water rights for 200 villages",
-            "Led farmers' movement for fair crop prices",
-            "Established 25 rural development centers",
-          ],
-          manifesto: [
-            "Regional autonomy and development",
-            "Agricultural subsidies and farmer support",
-            "Local language and cultural preservation",
-            "Water resource management",
-          ],
-          socialMedia: {
-            twitter: "@amitpatel",
-            facebook: "amitpatelofficial",
-            instagram: "amit.patel.official",
-          },
-        },
-      },
-      {
-        id: 4,
-        name: "Sunita Reddy",
-        party: "Progressive Democratic Party",
-        partyShort: "PDP",
-        symbol: "🔔", // Bell symbol
-        image: "/placeholder.svg?height=100&width=100",
-        color: "bg-purple-100 border-purple-300",
-        buttonColor: "bg-indigo-600 hover:bg-indigo-700",
-        category: "regional",
-        details: {
-          age: 39,
-          education: "MBA and Social Work",
-          experience: "NGO founder, 5 years in politics",
-          achievements: [
-            "Launched tech education program reaching 10,000 students",
-            "Created urban housing initiative for 5,000 families",
-            "Established innovation hub creating 2,000 jobs",
-          ],
-          manifesto: [
-            "Universal basic income pilot programs",
-            "Technology sector development",
-            "Healthcare modernization",
-            "Urban housing and transportation",
-          ],
-          socialMedia: {
-            twitter: "@sunitareddy",
-            facebook: "sunitareddyofficial",
-            instagram: "sunita.reddy.official",
-          },
-        },
-      },
-      {
-        id: 5,
-        name: "Vikram Singh",
-        party: "People's Democratic Front",
-        partyShort: "PDF",
-        symbol: "🌟", // Star symbol
-        image: "/placeholder.svg?height=100&width=100",
-        color: "bg-yellow-100 border-yellow-300",
-        buttonColor: "bg-indigo-600 hover:bg-indigo-700",
-        category: "independent",
-        details: {
-          age: 41,
-          education: "Civil Engineering & Public Administration",
-          experience: "Civil servant for 12 years, Independent candidate",
-          achievements: [
-            "Led urban renewal projects in 3 major cities",
-            "Implemented transparent governance systems",
-            "Reduced bureaucratic processes by 30%",
-          ],
-          manifesto: [
-            "Administrative reforms and transparency",
-            "Smart city initiatives",
-            "Youth employment programs",
-            "Anti-corruption measures",
-          ],
-          socialMedia: {
-            twitter: "@vikramsingh",
-            facebook: "vikramsinghofficial",
-            instagram: "vikram.singh.official",
-          },
-        },
-      },
-      {
-        id: 6,
-        name: "Meera Desai",
-        party: "Independent",
-        partyShort: "IND",
-        symbol: "📝", // Pencil symbol
-        image: "/placeholder.svg?height=100&width=100",
-        color: "bg-gray-100 border-gray-300",
-        buttonColor: "bg-indigo-600 hover:bg-indigo-700",
-        category: "independent",
-        details: {
-          age: 36,
-          education: "Journalism and Political Science",
-          experience: "Journalist, Social Activist, First-time candidate",
-          achievements: [
-            "Award-winning investigative journalist",
-            "Led citizen movements for environmental protection",
-            "Founded education initiative for underprivileged children",
-          ],
-          manifesto: [
-            "Media freedom and right to information",
-            "Environmental sustainability",
-            "Education for all",
-            "Grassroots democracy strengthening",
-          ],
-          socialMedia: {
-            twitter: "@meeradesai",
-            facebook: "meeradesaiofficial",
-            instagram: "meera.desai.official",
-          },
-        },
-      },
-    ]
-
-    setCandidates(mockCandidates)
-
-    // Simulate loading progress
-    let progress = 0
-    const interval = setInterval(() => {
-      progress += 10
-      setLoadingProgress(progress)
-      if (progress >= 100) clearInterval(interval)
-    }, 100)
-  }
-
-  // Filter candidates based on active tab and search term
-  const filteredCandidates = candidates.filter((candidate) => {
-    const matchesTab = activeTab === "all" || candidate.category === activeTab
-    const matchesSearch =
-      candidate.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      candidate.party.toLowerCase().includes(searchTerm.toLowerCase())
-    return matchesTab && matchesSearch
-  })
-
-  // Select a candidate
-  const selectCandidate = (candidate) => {
-    setSelectedCandidate(candidate)
-    // Add subtle haptic feedback if supported
-    if (window.navigator && window.navigator.vibrate) {
-      window.navigator.vibrate(50)
-    }
-  }
+  }, [])
 
   // View candidate details
   const viewCandidateDetails = (candidate) => {
@@ -567,8 +88,8 @@ export default function VotingPage() {
     setShowCandidateDetails(true)
   }
 
-  // Submit vote
-  const submitVote = () => {
+  // Handle submit vote button click
+  const handleSubmitVote = () => {
     if (!selectedCandidate) {
       setError("Please select a candidate before submitting your vote.")
       setTimeout(() => setError(null), 3000)
@@ -580,36 +101,8 @@ export default function VotingPage() {
 
   // Confirm vote
   const confirmVote = () => {
-    setIsVoting(true)
     setShowConfirmation(false)
-
-    // Simulate API call to submit vote
-    setTimeout(() => {
-      // Generate a vote receipt
-      const receipt = {
-        id: Math.random().toString(36).substring(2, 15),
-        timestamp: new Date().toISOString(),
-        constituency: userData?.constituency || "Central Delhi",
-        boothId: "B" + Math.floor(1000 + Math.random() * 9000),
-        verificationCode: Math.random().toString(36).substring(2, 10).toUpperCase(),
-        electionId: "GE2025-" + Math.floor(10000 + Math.random() * 90000),
-      }
-
-      setVoteReceipt(receipt)
-      setVoteSubmitted(true)
-      setIsVoting(false)
-      setShowSuccessAnimation(true)
-
-      // Store vote status in session
-      sessionStorage.setItem("hasVoted", "true")
-      // Store vote timestamp
-      sessionStorage.setItem("voteTimestamp", new Date().toISOString())
-      // Store receipt in session storage for reference
-      sessionStorage.setItem("voteReceipt", JSON.stringify(receipt))
-
-      // Hide success animation after 3 seconds
-      setTimeout(() => setShowSuccessAnimation(false), 3000)
-    }, 2000)
+    submitVote()
   }
 
   // Toggle help section
@@ -627,20 +120,10 @@ export default function VotingPage() {
     setShowQRCode((prev) => !prev)
   }
 
-  // Session expired handler
-  const handleSessionExpired = () => {
-    setSessionExpired(true)
-  }
-
-  // Return to dashboard
-  const returnToDashboard = () => {
-    navigate("/dashboard")
-  }
-
-  // Toggle filters
-  const toggleFilters = () => {
-    setShowFilters((prev) => !prev)
-  }
+  // Update the handleSessionExpired function to navigate to the correct verification page
+  // const handleSessionExpired = () => {
+  //   navigate("/voting/verify")
+  // }
 
   return (
     <div className="flex min-h-screen flex-col bg-gradient-to-br from-indigo-50 via-white to-purple-50 px-4 py-8 sm:px-6 lg:px-8">
@@ -895,52 +378,13 @@ export default function VotingPage() {
                     ) : (
                       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                         {filteredCandidates.map((candidate) => (
-                          <div
+                          <CandidateCard
                             key={candidate.id}
-                            className={cn(
-                              "group relative cursor-pointer overflow-hidden rounded-lg border p-4 transition-all hover:shadow-md",
-                              selectedCandidate?.id === candidate.id
-                                ? "border-indigo-500 bg-indigo-50 ring-2 ring-indigo-500 ring-opacity-50"
-                                : `${candidate.color} hover:border-gray-300`,
-                            )}
-                            onClick={() => selectCandidate(candidate)}
-                          >
-                            <div className="flex items-start space-x-4">
-                              <div className="flex-shrink-0">
-                                <div className="relative h-16 w-16 overflow-hidden rounded-full border-2 border-white shadow-sm transition-transform group-hover:scale-105">
-                                  <img
-                                    src={candidate.image || "/placeholder.svg"}
-                                    alt={candidate.name}
-                                    className="h-full w-full object-cover"
-                                  />
-                                </div>
-                                <div className="mt-2 text-center text-2xl">{candidate.symbol}</div>
-                              </div>
-                              <div className="flex-1">
-                                <h3 className="text-lg font-medium text-gray-900">{candidate.name}</h3>
-                                <p className="text-sm text-gray-600">{candidate.party}</p>
-                                <p className="text-xs text-gray-500">({candidate.partyShort})</p>
-                                <div className="mt-2 flex space-x-2">
-                                  <button
-                                    type="button"
-                                    className="flex items-center rounded-md bg-white px-2 py-1 text-xs font-medium text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 transition-colors hover:bg-gray-50"
-                                    onClick={(e) => {
-                                      e.stopPropagation()
-                                      viewCandidateDetails(candidate)
-                                    }}
-                                  >
-                                    <Eye className="mr-1 h-3 w-3" />
-                                    View Details
-                                  </button>
-                                </div>
-                              </div>
-                              {selectedCandidate?.id === candidate.id && (
-                                <div className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full bg-indigo-500 text-white">
-                                  <Check className="h-4 w-4" />
-                                </div>
-                              )}
-                            </div>
-                          </div>
+                            candidate={candidate}
+                            isSelected={selectedCandidate?.id === candidate.id}
+                            onSelect={selectCandidate}
+                            onViewDetails={viewCandidateDetails}
+                          />
                         ))}
                       </div>
                     )}
@@ -976,10 +420,10 @@ export default function VotingPage() {
 
                     {/* Submit button */}
                     <div className="flex justify-center pt-4">
-                      <Button
-                        onClick={submitVote}
+                      <button
+                        onClick={handleSubmitVote}
                         disabled={!selectedCandidate || isVoting}
-                        className="group relative w-full overflow-hidden rounded-md bg-gradient-to-r from-indigo-600 to-purple-600 px-8 py-3 text-white transition-all hover:from-indigo-700 hover:to-purple-700 sm:w-auto"
+                        className="group relative w-full overflow-hidden rounded-md bg-gradient-to-r from-indigo-600 to-purple-600 px-8 py-3 text-white transition-all hover:from-indigo-700 hover:to-purple-700 disabled:opacity-50 sm:w-auto"
                       >
                         <span className="relative z-10 flex items-center justify-center">
                           {isVoting ? (
@@ -992,112 +436,12 @@ export default function VotingPage() {
                           )}
                         </span>
                         <span className="absolute inset-0 -translate-y-full bg-gradient-to-r from-indigo-700 to-purple-700 transition-transform duration-300 ease-out group-hover:translate-y-0"></span>
-                      </Button>
+                      </button>
                     </div>
                   </>
                 ) : (
                   // Vote submitted success
-                  <div className="space-y-6">
-                    <div className="relative flex flex-col items-center justify-center overflow-hidden rounded-lg border border-purple-200 bg-purple-50 p-6">
-                      {showSuccessAnimation && (
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <div className="h-full w-full animate-pulse bg-purple-400/20"></div>
-                          <div className="absolute -inset-10 animate-spin-slow">
-                            {[...Array(12)].map((_, i) => (
-                              <div
-                                key={i}
-                                className="absolute h-2 w-2 rounded-full bg-purple-500"
-                                style={{
-                                  top: `${50 + 45 * Math.sin(i * (Math.PI / 6))}%`,
-                                  left: `${50 + 45 * Math.cos(i * (Math.PI / 6))}%`,
-                                  opacity: 0.7,
-                                  animation: `pulse 1.5s infinite ${i * 0.1}s`,
-                                }}
-                              ></div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-purple-100 shadow-inner">
-                        <CheckCircle2 className="h-8 w-8 text-purple-600" />
-                      </div>
-                      <h3 className="text-lg font-medium text-purple-800">Vote Recorded Successfully</h3>
-                      <p className="mt-2 text-center text-sm text-purple-700">
-                        Your vote has been securely recorded. Thank you for participating in the democratic process.
-                      </p>
-
-                      {/* Vote receipt */}
-                      {voteReceipt && (
-                        <div className="mt-4 w-full rounded-lg border border-purple-200 bg-white p-4 text-sm shadow-sm">
-                          <div className="mb-2 flex items-center justify-between">
-                            <h4 className="font-medium text-gray-800">Vote Receipt</h4>
-                            <button
-                              onClick={toggleQRCode}
-                              className="flex items-center rounded-md bg-gray-100 px-2 py-1 text-xs text-gray-600 hover:bg-gray-200"
-                            >
-                              {showQRCode ? "Hide QR" : "Show QR"}
-                            </button>
-                          </div>
-
-                          {showQRCode && (
-                            <div className="mb-3 flex justify-center">
-                              <div className="h-32 w-32 rounded-md bg-white p-2 shadow-sm">
-                                {/* Placeholder for QR code */}
-                                <div className="flex h-full w-full items-center justify-center bg-gray-100 text-xs text-gray-500">
-                                  QR Code for verification
-                                </div>
-                              </div>
-                            </div>
-                          )}
-
-                          <div className="space-y-2 text-gray-600">
-                            <div className="flex justify-between">
-                              <span>Receipt ID:</span>
-                              <span className="font-medium">{voteReceipt.id}</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span>Timestamp:</span>
-                              <span className="font-medium">{new Date(voteReceipt.timestamp).toLocaleString()}</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span>Constituency:</span>
-                              <span className="font-medium">{voteReceipt.constituency}</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span>Booth ID:</span>
-                              <span className="font-medium">{voteReceipt.boothId}</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span>Election ID:</span>
-                              <span className="font-medium">{voteReceipt.electionId}</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span>Verification Code:</span>
-                              <span className="font-medium">{voteReceipt.verificationCode}</span>
-                            </div>
-                          </div>
-                          <div className="mt-3 text-center text-xs text-gray-500">
-                            You can use this receipt to verify your vote was counted without revealing your choice.
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="flex justify-center">
-                      <Button
-                        onClick={returnToDashboard}
-                        variant="indigo"
-                        className="group relative overflow-hidden rounded-md px-6 py-2 transition-all"
-                      >
-                        <span className="relative z-10 flex items-center">
-                          Return to Dashboard
-                          <ChevronRight className="ml-1 h-4 w-4" />
-                        </span>
-                        <span className="absolute inset-0 -translate-y-full bg-gradient-to-r from-indigo-700 to-purple-700 transition-transform duration-300 ease-out group-hover:translate-y-0"></span>
-                      </Button>
-                    </div>
-                  </div>
+                  <VoteReceipt receipt={voteReceipt} onClose={returnToDashboard} />
                 )}
               </div>
             </CardContent>
@@ -1135,75 +479,11 @@ export default function VotingPage() {
 
       {/* Candidate details modal */}
       <Modal isOpen={showCandidateDetails} onClose={() => setShowCandidateDetails(false)} title="Candidate Details">
-        {selectedCandidateDetails && (
-          <div className="space-y-4">
-            <div className="flex items-center space-x-4">
-              <div className="relative h-20 w-20 overflow-hidden rounded-full border-2 border-white shadow-md">
-                <img
-                  src={selectedCandidateDetails.image || "/placeholder.svg"}
-                  alt={selectedCandidateDetails.name}
-                  className="h-full w-full object-cover"
-                />
-              </div>
-              <div>
-                <h3 className="text-xl font-medium">{selectedCandidateDetails.name}</h3>
-                <p className="text-gray-600">{selectedCandidateDetails.party}</p>
-                <div className="mt-1 text-3xl">{selectedCandidateDetails.symbol}</div>
-              </div>
-            </div>
-
-            <div className="space-y-3 rounded-lg border border-gray-200 bg-gray-50 p-4">
-              <div>
-                <span className="font-medium text-gray-700">Age: </span>
-                <span>{selectedCandidateDetails.details.age} years</span>
-              </div>
-              <div>
-                <span className="font-medium text-gray-700">Education: </span>
-                <span>{selectedCandidateDetails.details.education}</span>
-              </div>
-              <div>
-                <span className="font-medium text-gray-700">Experience: </span>
-                <span>{selectedCandidateDetails.details.experience}</span>
-              </div>
-            </div>
-
-            <div>
-              <h4 className="mb-2 font-medium text-gray-800">Key Achievements:</h4>
-              <ul className="list-inside list-disc space-y-1 rounded-lg border border-gray-200 bg-white p-3 text-sm">
-                {selectedCandidateDetails.details.achievements.map((achievement, index) => (
-                  <li key={index}>{achievement}</li>
-                ))}
-              </ul>
-            </div>
-
-            <div>
-              <h4 className="mb-2 font-medium text-gray-800">Key Manifesto Points:</h4>
-              <ul className="list-inside list-disc space-y-1 rounded-lg border border-gray-200 bg-white p-3 text-sm">
-                {selectedCandidateDetails.details.manifesto.map((point, index) => (
-                  <li key={index}>{point}</li>
-                ))}
-              </ul>
-            </div>
-
-            <div className="flex justify-end space-x-3 pt-2">
-              <button
-                onClick={() => setShowCandidateDetails(false)}
-                className="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
-              >
-                Close
-              </button>
-              <button
-                onClick={() => {
-                  selectCandidate(selectedCandidateDetails)
-                  setShowCandidateDetails(false)
-                }}
-                className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-700"
-              >
-                Select Candidate
-              </button>
-            </div>
-          </div>
-        )}
+        <CandidateDetails
+          candidate={selectedCandidateDetails}
+          onClose={() => setShowCandidateDetails(false)}
+          onSelect={selectCandidate}
+        />
       </Modal>
 
       {/* Confirmation modal */}
@@ -1307,4 +587,15 @@ export default function VotingPage() {
     </div>
   )
 }
+
+// Wrap the component with the VotingProvider
+const VotingPage = () => {
+  return (
+    <VotingProvider>
+      <VotingPageContent />
+    </VotingProvider>
+  )
+}
+
+export default VotingPage
 

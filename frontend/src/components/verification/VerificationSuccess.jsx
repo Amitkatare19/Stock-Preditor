@@ -58,10 +58,7 @@ const VerificationSuccess = () => {
         </div>
       </div>
 
-      <Button
-        onClick={() => navigate("/voting/cast-vote")}
-        className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white"
-      >
+      <Button onClick={proceedToVoting} className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white">
         Proceed to Voting
         <ChevronRight className="ml-1 h-4 w-4" />
       </Button>
